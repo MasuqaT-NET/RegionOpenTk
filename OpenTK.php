@@ -59,9 +59,20 @@ print <<< CSS_SCRIPT_LINK
 <script type="text/javascript">
 SyntaxHighlighter.all();
 </script>
-
+<script type="text/javascript">
+if (location.hostname !== "masuqat.net") {
+    var head = document.getElementsByTagName("head")[0];
+    var metaN = document.createElement("meta");
+    metaN.setAttribute("name","robots");
+    metaN.setAttribute("content","noindex");
+    head.appendChild(metaN);
+    var metaC = document.createElement("link");
+    metaC.setAttribute("rel","canonical");
+    metaC.setAttribute("href","https://masuqat.net/programming/csharp/" + location.pathname.split('/').pop());
+    head.appendChild(metaC);
+}
+</script>
 CSS_SCRIPT_LINK;
-print "<!-- test:" . gethostname() . ":-->";
 print "</head>\n";
 
 print "<body>\n";
