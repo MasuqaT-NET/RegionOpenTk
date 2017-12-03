@@ -1,0 +1,60 @@
+<h3>ジョイスティック対応で よりゲームらしく</h3>
+<div class="segment">
+<p>ジョイスティックとは、ゲーム用コントローラのことです。OpenTKでは「ゲームパッド」とは区別されているようですが、そのあたりは良くわかりません。(私の手持ちのゲームパッドはジョイスティックとして動きます)</p>
+<p>キーボードとマウスという入力方法では難しかったり似合わなかったりするプログラムでも、ジョイスティックを使えば快適な操作にできるかもしれません。</p>
+<p>OpenTKでは、ある時点でのジョイスティックのすべての状態を取得してから、ボタンなどの状態をそれぞれ使います。</p>
+</div>
+
+<h3>ボタン・ハットスイッチ・アナログスティック</h3>
+<div class="segment">
+<p><a href="https://github.com/occar421/region_OpenTK/tree/master/00-08" target="_blank">ソースコード</a>では、OpenTK 1.1を使っていますので注意してください。それぞれの記述は長めです。</p>
+<pre class="brush: csharp; first-line:152;" title="00-08_main.cs:OnUpdateFrame関数の一部:すべての状態を取得">
+			var state = Joystick.GetState(0);
+			if (state.IsConnected)
+</pre>
+<p>Joystick.GetState関数で、指定したジョイスティックのすべての状態を取得します。</p>
+<p>名前の通り、状態のIsConnectedプロパティはジョイスティックが接続状態かを確認できます。</p>
+</div>
+<div class="segment">
+<pre class="brush: csharp; first-line:155;" title="00-08_main.cs:OnUpdateFrame関数の一部:ボタン">
+				// Buttons
+				if (state.GetButton(JoystickButton.Button1) == ButtonState.Pressed)
+				{
+					GL.Color4(Color4.IndianRed);
+				}
+				else if (state.IsButtonDown(JoystickButton.Button2))
+				{
+					GL.Color4(Color4.DodgerBlue);
+				}
+</pre>
+<p>ボタンの状態を確認するには、GetButtonメソッドによる方法とIsButtonDown(or IsButtonUp)による方法があります。</p>
+<p>なお、OpenTKの標準ではボタンは押しているか離しているかしかわからないため、複雑なことをする場合は前に取得した状態と比較する必要があります。</p>
+</div>
+<div class="segment">
+<pre class="brush: csharp; first-line:165;" title="00-08_main.cs:OnUpdateFrame関数の一部:ハットスイッチ">
+				// Hat
+				if (state.GetHat(JoystickHat.Hat0).IsUp)
+				{
+					GL.Color4(Color4.White);
+				}
+				else if (state.GetHat(JoystickHat.Hat0).Position.HasFlag(HatPosition.Down))
+				{
+					GL.Color4(Color4.Black);
+				}
+</pre>
+<p>ハットスイッチ(十字ボタン等?)の状態を確認するには、GetHatメソッドのIsUp(,IsDown, IsLeft or IsRight)で直接確認するか、Positionプロパティで(ビットフィールド)Enumを使って確認します。</p>
+<p>この二つの違いは、前者が唯一1つだけ押されているのかを確認するのに対し、後者は他のものと組み合わせたのを含めて押されているかです。(右上を押しているときに↑をそれぞれ確認すると、前者は×で後者は○です。)</p>
+</div>
+<div class="segment">
+<pre class="brush: csharp; first-line:175;" title="00-08_main.cs:OnUpdateFrame関数の一部:アナログスティック">
+				// Axis
+				var x = state.GetAxis(JoystickAxis.Axis0);
+				var y = state.GetAxis(JoystickAxis.Axis1);
+				rotate = rotate * Matrix4.CreateRotationY(0.1f * x) * Matrix4.CreateRotationX(-0.1f * y);
+
+				var zR = state.GetAxis(JoystickAxis.Axis3);
+				zoom = zoom + zR * 0.1f;
+</pre>
+<p>アナログスティックやアナログトリガーの状態を確認するには、GetAxisメソッドを使います。</p>
+<p>この戻り値は-1.0f～1.0fの範囲の数値で、2方向に動くスティックに対しては2つのAxisが対応しているはずです。</p>
+</div>

@@ -1,0 +1,66 @@
+<h3>バッファを変えずにテクスチャを変える</h3>
+<div class="segment">
+<p>今まで、貼るテクスチャはプログラムが終わるまで同じものでした。</p>
+<p>もしプログラム中に変える場合、今までの関数を使って実装するなら、使ったテクスチャ用バッファを削除して、新しいバッファを生成、ひも付けするという流れになるでしょう。</p>
+<p>しかしバッファの作成と削除は負担になります。そこで、現在使っているテクスチャ用バッファの内容を部分的に上書きするという関数があります。</p>
+<p>また、現在の描画結果をバッファにコピーするというものもあります。</p>
+<p>今回は左の画像をメインに、縦横のサイズが半分な右の画像を一部として上書きします。</p><p align="center"><img src="OpenTK_misc/02-09_01.png" width="400px" height="400px" alt="Texture1"><img src="OpenTK_misc/02-09_02.png" width="200px" height="200px" alt="Texture2" /></p>
+</div>
+
+<h3>切り替えは効果的に</h3>
+<div class="segment">
+<p align="center"><img src="OpenTK_misc/02-09_03.png" width="800px" height="600px" alt="Replace"><br />テクスチャのアニメで役立つ</p>
+<p><a href="https://github.com/occar421/region_OpenTK/tree/master/02-09" target="_blank">ソースコード</a>。処理を分かりやすくするため、背景色が変わるようにしています。</p>
+</div>
+
+<div class="segment">
+<p>まず引数の比較のために、今まで使ってきたTexImage2Dを確認します。</p>
+<pre class="brush: c#; first-line:160;" title="02-09_main.cs:TexImage2D">
+			//初期テクスチャを設定
+			GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, textureWidth, textureHeight,
+				0, OpenTK.Graphics.OpenGL.PixelFormat.Bgra, PixelType.UnsignedByte, textureData[0]);
+</pre>
+<p>前から対象、ミップマップのレベル、OpenGL内フォーマットの順になり、6番目も0にしろとなっていますが、ここでは関係無いので置いておきます。</p>
+<p>4、5番目は、テクスチャの横と縦のサイズ、7、8番目はデータのフォーマット、最後はデータ本体です。</p>
+<p>下の関数を実行する前はこの描画結果とします。</p>
+<p align="center"><img src="OpenTK_misc/02-09_04.png" width="400px" height="300px" alt="TexImage2D"></p>
+</div>
+
+<div class="segment">
+<p>GL.CopyTexImage2D関数は、現在画面に映している結果の一部をテクスチャユニットに上書きコピーします。</p>
+<pre class="brush: c#; first-line:196;" title="02-09_main.cs:CopyTexImage2D">
+				GL.CopyTexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, 0, 0,
+					textureWidth, textureHeight, 0);
+</pre>
+<p>4、5番目は、出力画面の中でコピーしたい部分の左下の座標xとyです。6、7番目は、コピーしたい部分の横と縦のサイズです。8番目は0としてください。</p>
+<p>このプログラムでは、左下から480px四方の結果をテクスチャユニットへ上書きしています。</p>
+<p align="center"><img src="OpenTK_misc/02-09_05.png" width="400px" height="300px" alt="CopyImage2D"></p>
+</div>
+
+<div class="segment">
+<p>GL.TexSubImage2D関数は、指定のデータをテクスチャユニットの一部へ上書きします。</p>
+<pre class="brush: c#; first-line:204;" title="02-09_main.cs:TexSubImage2D">
+				GL.TexSubImage2D(TextureTarget.Texture2D, 0, textureWidth / 4, textureHeight / 4,
+					textureWidth / 2, textureHeight / 2, OpenTK.Graphics.OpenGL.PixelFormat.Bgra, PixelType.UnsignedByte, textureData[1]);
+</pre>
+<p>3、4番目は、上書きしたい部分の左下の座標xとyです。6、7番目は、上書きしたい部分の横と縦のサイズです。</p>
+<p>このプログラムでは、テクスチャユニットの中央へ小さな画像データを上書きしています。</p>
+<p align="center"><img src="OpenTK_misc/02-09_06.png" width="400px" height="300px" alt="TexSubImage2D"></p>
+</div>
+
+<div class="segment">
+<p>GL.CopyTexSubImage2D関数は、現在画面に映している結果の一部をテクスチャユニットの一部へ上書きします。</p>
+<pre class="brush: c#; first-line:219;" title="02-09_main.cs:CopyTexSubImage2D">
+				GL.CopyTexSubImage2D(TextureTarget.Texture2D, 0, textureWidth / 4, textureHeight / 4,
+					this.Width - textureWidth / 2, this.Height - textureHeight / 2, textureWidth / 2, textureHeight / 2);
+</pre>
+<p>3、4番目は、上書きしたい部分の左下の座標xとyです。5、6番目は、コピー元の左下の座標xとyです。7、8番目は、横と縦のサイズです。</p>
+<p>このプログラムでは、右上から240px四方の結果を小さな画像データをテクスチャユニットの中央へ上書きしています。</p>
+<p align="center"><img src="OpenTK_misc/02-09_07.png" width="400px" height="300px" alt="TexSubImage2D"></p>
+</div>
+
+<div class="segment">
+<p>TexSubImage2Dはよく使うかもしれませんが、その他は特殊な場面でよく使うかもしれません。</p>
+<p>なお、コピーしたい部分の場所とサイズは、コピー先のテクスチャの領域を超えないようにしてください(領域外に上書きや、コピー元データが足りないなど)。そうしないと、正しい結果が得られず、テクスチャ用バッファもおかしくなってしまいます。</p>
+<p>また、このコードを実際にテストするときの注意点として、キーを推すとが複数押されたと判定されることがありますので気をつけてください。</p>
+</div>

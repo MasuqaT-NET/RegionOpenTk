@@ -1,0 +1,134 @@
+<h3>型紙</h3>
+<div class="segment">
+<p>ステンシルテストは、アルファテストとデプステストと同じように、ピクセル毎に記憶された値を元にそのピクセルを描画するかを判定しています。</p>
+<p>ステンシル(プレート)は型紙ですが、OpenGLではルールを設定することで指定したポリゴンを特殊な型紙として扱うことができます。</p>
+<p>またデプステストと同じように、ステンシルシャドウという影(Shadow)を描画する方法の一つに使われることもあります。</p>
+</div>
+
+<h3>上手く使えば効果的</h3>
+<div class="segment">
+<p align="center"><img src="OpenTK_misc/01-12_01.png" width="800px" height="600px" alt="Stencil Test"><br />球の奥が見える</p>
+<p><a href="https://github.com/occar421/region_OpenTK/tree/master/01-12" target="_blank">ソースコード</a>にはステンシルテストの設定が追加され、これを確認できるように型紙用の球を追加しています。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:51; highlight:[53];" title="01-12_main.cs:Gameクラスのコンストラクタ">
+		//800x600のウィンドウを作る。タイトルは「1-12:Stencil Test」GrahpcsModeでステンシルバッファのサイズを8に指定
+		public Game()
+			: base(800, 600, new GraphicsMode(GraphicsMode.Default.ColorFormat, GraphicsMode.Default.Depth, 8), "1-12:Stencil Test")
+</pre>
+<p>OpenTKのクラスが生成する画面は、初期状態ではステンシルバッファ(書き込む場所)のサイズが0になっているので、GraphicsModeを使って指定する必要があります。</p>
+<p>気にしていないと指定し忘れるかもしれないので注意してください。</p>
+
+<pre class="brush: c#; first-line:177; highlight:[178];" title="01-12_main.cs:OnLoad関数の一部">
+			//ステンシルテスト
+			GL.Enable(EnableCap.StencilTest);
+			GL.ClearStencil(0);
+			GL.StencilMask(~0);
+</pre>
+<p>まずは起動時に、ステンシルテストを許可します。</p>
+<p>次に、ステンシル値をリセットしたときの初期値をClearStencilで設定します。また、ステンシル値に対するマスクの値をStencilMaskで設定します(NOT 0x00なので、全てが'1'のビット列)。ちなみに、この例ではどちらとも初期値を設定しているので、書かれていない場合もあるはずです。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:257; highlight:[262];" title="01-12_main.cs:OnRenderFrame関数の一部(1)">
+		//画面描画で実行される。
+		protected override void OnRenderFrame(FrameEventArgs e)
+		{
+			base.OnRenderFrame(e);
+
+			GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
+</pre>
+<p>ここの引数の指定も変わります。一番最後にStencilBufferBitを追加していて、これでステンシル値が、ClearStencilで指定した値になります。</p>
+<pre class="brush: c#; first-line:290; highlight:[296,297,304,305,315];" title="01-12_main.cs:OnRenderFrame関数の一部(2)">
+			GL.MatrixMode(MatrixMode.Modelview);
+
+			plate.Draw();
+
+			GL.ColorMask(false, false, false, false);
+			GL.DepthMask(false);
+			GL.StencilOp(StencilOp.Keep, StencilOp.Replace, StencilOp.Replace);
+			GL.StencilFunc(StencilFunction.Always, 1, ~0);
+			
+			//型紙描画
+			clip.Draw();
+
+			GL.ColorMask(true, true, true, true);
+			GL.DepthMask(true);
+			GL.StencilOp(StencilOp.Keep, StencilOp.Keep, StencilOp.Keep);
+			GL.StencilFunc(StencilFunction.Equal, 1, ~0);
+
+			//ステンシル値==+1で見えるものを描画
+			GL.PushMatrix();
+			GL.Translate(-7.5f, 0.0f, 0.0f);
+
+			torus.Draw();
+
+			GL.PopMatrix();
+
+			GL.StencilFunc(StencilFunction.Equal, 0, ~0);
+
+			//ステンシル値==0で見えるものを描画
+			GL.PushMatrix();
+			GL.Translate(7.5f, 0.0f, 0.0f);
+
+			sphere.Draw();
+
+			GL.PopMatrix();
+
+			SwapBuffers();
+</pre>
+<p>ColorMaskとDepthMask関数は、バッファに対しての書き込み制御するもので、falseで書き込まない(≒表示しない)、trueで書き込む(≒表示する)となっています。結果の表示のために追加しています。</p>
+<p>ステンシルテストの処理の設定は主に二つです。</p>
+<p>StencilOpは、ステンシルテストとデプステストの結果によって、どのような処理をステンシル値に施すかを指定します。各引数は順に、ステンシルテスト不合格、ステンシルテスト合格かつデプステスト不合格、どちらも合格、のときとなっています。</p>
+<p>StencilFuncは、テストの評価方法を設定します。最初の引数で不等号を、次の引数で基準値を定めます。最後の引数はステンシル値へのマスクです。</p>
+<p>StencilOpで用いるStencilOp列挙型は下のとおりです。(値はステンシル値のことです。)</p>
+<dl class="enums">
+<dt>Keep</dt>
+<dd>値を変化させない</dd>
+<dt>Zero</dt>
+<dd>値を0にする</dd>
+<dt>Incr</dt>
+<dd>値を+1</dd>
+<dt>IncrWrap</dt>
+<dd>値を+1 (最大値を超えると0)</dd>
+<dt>Decr</dt>
+<dd>値を-1</dd>
+<dt>DecrWrap</dt>
+<dd>値を-1 (0を下回ると最大値)</dd>
+<dt>Replace</dt>
+<dd>StencilFuncの第2引数の値とする</dd>
+<dt>Invert</dt>
+<dd>値のビット列を反転する</dd>
+</dl>
+<p>StencilFuncで用いるStencilFunction列挙型は、デプステストのものと内容は同じです。</p>
+<dl class="enums">
+<dt>Never</dt>
+<dd>全て不合格</dd>
+<dt>Less</dt>
+<dd>比較値未満なら合格</dd>
+<dt>Equal</dt>
+<dd>比較値と同じなら合格</dd>
+<dt>Lequal</dt>
+<dd>比較値以下なら合格</dd>
+<dt>Greater</dt>
+<dd>比較値を超えるなら合格</dd>
+<dt>Notequel</dt>
+<dd>比較値と異なれば合格</dd>
+<dt>Gequal</dt>
+<dd>比較値以上なら合格</dd>
+<dt>Always</dt>
+<dd>すべて合格</dd>
+</dl>
+</div>
+
+<h3>サンプル図</h3>
+<div class="segment">
+<p>文だけでは動作を掴みにくいと思うので、図でさらに説明します。その前に状況から。</p>
+<p align="center"><img src="OpenTK_misc/01-12_02.png" alt="StencilTestOff" height="600px" width="800px"><br />すべてを普通に表示した場合</p>
+<p>この型紙は左右の物体より早く(ステンシルバッファに)描画され、画面の中で型紙があるところのステンシル値が1となります。そうでない場合は0です。ちなみに、回転の中心に球の型紙があるので画面の中心のステンシル値は常に1となることになります。</p>
+<p align="center"><img src="OpenTK_misc/01-12_03.png" alt="StencilTestOn" height="600px" width="800px"><br />通常描画</p>
+<p>この場合、中心以外のステンシル値は0なので、赤い球は無事描画されます。しかし1ではないので青のトーラスは描画されません。なお、下の床はステンシル値がClearされ0で、関数の最後のStencilFuncの設定が残っているので描画されています。</p>
+<p align="center"><img src="OpenTK_misc/01-12_04.png" alt="StencilTest2" height="300px" width="400px"><img src="OpenTK_misc/01-12_05.png" alt="StencilTest2Navi" height="300px" width="400px"><br />どちらも欠ける状態</p>
+<p>なんとも奇妙な形ですが、中心以外のステンシル値は0なので、中心以外では赤い球が描画されています。また、中心のステンシル値は1なので、中心では青いトーラスが描画されています。</p>
+</div>

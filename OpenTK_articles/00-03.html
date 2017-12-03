@@ -1,0 +1,163 @@
+<h3>GameWindowはシンプル</h3>
+<div class="segment">
+<p>今回は、簡単なウィンドウである"GameWindow"を使って画面に表示してみます。</p>
+<p>簡単なウィンドウを作成し、フレームレートを設定できるので、名前の通りゲーム向きです。</p>
+</div>
+
+<h3>実際に表示してみる</h3>
+<div class="segment">
+<p>言葉で説明するより実際に動作する画面とソースコードがあったほうが早そうなので、サンプルを出してしまいます。OpenTK.dllへの参照を忘れないでくださいね。</p>
+<p align="center"><img src="OpenTK_misc/00-03_01.png" width="800px" height="600px" alt="GameWindow1"><br />何も表示していない画面です。</p>
+<pre class="brush: c#; first-line:1; highlight:[22];" title="シンプルなGameWindow">
+using System;
+using OpenTK;
+using OpenTK.Graphics;
+
+namespace OpenTK_Sample
+{
+	class OpenTK_Sample
+	{
+		[STAThread]
+		static int Main()
+		{
+			using (Game window = new Game())
+			{
+				window.Run(30.0);
+			}
+			return 0;
+		}
+	}
+	
+	class Game:GameWindow
+	{
+		public Game():base(800,600,GraphicsMode.Default,"0-3:GameWindow")
+		{
+		}
+	}
+}
+</pre>
+<p>22行目に注目してください。GameクラスはGameWindowクラスを継承し、baseで継承元(つまりGameWindowクラス)のコンストラクタを呼び出しています。</p>
+<p>OpenTKのドキュメントによると、以下のような説明があります。</p>
+<dl class="functions">
+	<dt>GameWindow(int width,int height,GraphicsMode mode,string title)</dt>
+	<dd>Constructs a new GameWindow with the specified attributes.</dd>
+</dl>
+<p>今回の場合、「横800px、縦600px、デフォルトのモードでタイトルは"0-3:GameWindow"」という指定でウィンドウを作っていることになります。</p>
+</div>
+
+<h3>実用的なGameWindow</h3>
+<div class="segment">
+<p>上のウィンドウではあまりにもシンプルなので、もうちょっと機能を使ったウィンドウも作ってみます。</p>
+<p align="center"><img src="OpenTK_misc/00-03_02.png" width="800px" height="600px" alt="GameWindow2"><br />カラフルな正方形を描画します。</p>
+<p><a href="https://github.com/occar421/region_OpenTK/tree/master/00-03" target="_blank">ソースコード</a>が急に長くなりました。ただ、あまり難しいことはないです。切り分けて説明します。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:1; highlight:[2,8];" title="00-03_main.cs:using">
+/*
+ * 参照設定 : OpenTK System.Drawing
+ */
+
+using System;
+using OpenTK;
+using OpenTK.Graphics;
+using OpenTK.Graphics.OpenGL;
+using OpenTK.Input;
+</pre>
+<p>参照には"OpenTK"と"System.Drawing"を追加してください。"using OpenTK.Graphics.OpenGL"というのは、C言語でのOpenGLの機能を使うということです。ここの"OepnGL"を変えるとOpenGLESの機能が使えたりします。"OpenTK.Input"は今回キーボード入力のために使っています。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:34 highlight:[40];" title="00-03_main.cs:OnLoad関数">
+		//ウィンドウの起動時に実行される。
+		protected override void OnLoad(EventArgs e)
+		{
+			base.OnLoad(e);
+
+			GL.ClearColor(Color4.Black);
+			GL.Enable(EnableCap.DepthTest);
+		}
+</pre>
+<p>Gl.ClearColor関数とGL.Enable関数を見て何か思い出しませんでしたか？そうです、OpenGLにはglClearColor関数やglEnable関数があり、その名前と似ているのです。</p>
+<p>OpenTKでは、OpenGLのgl****関数がGL.****関数という名前になっています。GLというクラスはOpenTK.Graphics.OpenGLという名前空間にあるので、usingで指定してやる必要があります。</p>
+<p>また、OpenGLでの"GL_DEPTH_TEST"のようなglEnableで使う定数はEnableCapという列挙型で格納されています。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:43;" title="00-03_main.cs:OnResize関数">
+		//ウィンドウのサイズが変更された場合に実行される。
+		protected override void OnResize(EventArgs e)
+		{
+			base.OnResize(e);
+
+			GL.Viewport(ClientRectangle.X, ClientRectangle.Y, ClientRectangle.Width, ClientRectangle.Height);
+			GL.MatrixMode(MatrixMode.Projection);
+			Matrix4 projection = Matrix4.CreatePerspectiveFieldOfView((float)Math.PI / 4, (float)Width / (float)Height, 1.0f, 64.0f);
+			GL.LoadMatrix(ref projection);
+		}
+</pre>
+<p>OpenGLでの"GL_PROJECTION"は、OpenTKでは"MatrixMode.Projection"となります。MatrixModeも列挙型です。</p>
+<p>Matrix4は、OpenTK付属の4x4行列のクラスです。Matrix4.CreatePerspectiveFieldOfView関数は、gluのgluPerspective関数でプロジェクト行列に適応される行列を生成します。</p>
+<p>ClientRectangleはGameWindowのプロパティで、ビューポートの設定に使っています。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:54;" title="00-03_main.cs:OnUpdateFrame関数">
+		//画面更新で実行される。
+		protected override void OnUpdateFrame(FrameEventArgs e)
+		{
+			base.OnUpdateFrame(e);
+
+			//Escapeキーで終了
+			if (Keyboard[Key.Escape])
+			{
+				this.Exit();
+			}
+		}
+</pre>
+<p>"Keyboard"はGameWindowクラスのプロパティで、インデクサにKey列挙型を指定することで、指定したキーが押されているかをboolで得られます。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:66; highlight:[79,81,83,85]" title="00-03_main.cs:OnRenderFrame関数">
+		//画面描画で実行される。
+		protected override void OnRenderFrame(FrameEventArgs e)
+		{
+			base.OnRenderFrame(e);
+
+			GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+
+			GL.MatrixMode(MatrixMode.Modelview);
+			Matrix4 modelview = Matrix4.LookAt(Vector3.Zero, Vector3.UnitZ, Vector3.UnitY);
+			GL.LoadMatrix(ref modelview);
+			
+			GL.Begin(BeginMode.Quads);
+
+			GL.Color4(Color4.White);							//色名で指定
+			GL.Vertex3(-1.0f, 1.0f, 4.0f);
+			GL.Color4(new float[] { 1.0f, 0.0f, 0.0f, 1.0f });	//配列で指定
+			GL.Vertex3(-1.0f, -1.0f, 4.0f);
+			GL.Color4(0.0f, 1.0f, 0.0f, 1.0f);					//4つの引数にfloat型で指定
+			GL.Vertex3(1.0f, -1.0f, 4.0f);
+			GL.Color4((byte)0, (byte)0, (byte)255, (byte)255);	//byte型で指定
+			GL.Vertex3(1.0f, 1.0f, 4.0f);
+
+			GL.End();
+
+			SwapBuffers();
+		}
+</pre>
+<p>4つのGL.Color4関数に注目してください。引数がそれぞれ違いますが、これらはすべて正しい文法です。(関数のオーバーロード)</p>
+<p>79行目はOpenTK付属クラスでの指定、81行目はfloat型配列、83行目はfloat型を4つ、85行目はbyte型を4つ…という具合です。</p>
+</div>
+
+<h3>OpenGLとOpenTK:書き方の違い</h3>
+<div class="segment">
+<p>OpenGLはgl*****という関数でプログラムを動かしていました。OpenTKでその機能を使う場合はGL.*****という関数を使います。</p>
+<p>OpenGLでは状態指定の定数(GL_DEPTH_TEST,GL_PROJECTION,etc...)はdefineで定義されていました。OpenTKは関連するものを列挙型でまとめています。</p>
+<p>OpenGLでは色はglColor(数字)(型)、頂点はglVertex(数字)(型)という関数で指定していました。OpenTKはそれらの型の違う関数をオーバーロードで定義し、入れるデータの型を気にせず引数に指定できます。また、OpenTK付属のクラスも指定できます。</p>
+</div>
+
+<div class="segment">
+<p>ちょっと違うところはありますが、OpenTKはOpenGLとそっくりですよね？</p>
+</div>

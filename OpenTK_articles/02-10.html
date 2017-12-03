@@ -1,0 +1,32 @@
+<h3>テクスチャの指定も座標変換</h3>
+<div class="segment">
+<p>テクスチャの座標を指定する点も、行列の演算によって移すことができます。</p>
+<p>使われる場面は限られるかもしれませんが、使用すべき場面というものはあるでしょう。</p>
+<p>今回はこの画像を使います。</p><p align="center"><img src="OpenTK_misc/02-10_01.png" width="400px" height="400px" alt="Texture"></p>
+</div>
+
+<h3>テクスチャではなく点が動きます</h3>
+<div class="segment">
+<p align="center"><img src="OpenTK_misc/02-10_02.png" width="800px" height="600px" alt="Transform"><br />テクスチャには手を加えない</p>
+<p><a href="https://github.com/occar421/region_OpenTK/tree/master/02-10" target="_blank">ソースコード</a>の見どころは少しだけ。</p>
+</div>
+
+<div class="segment">
+<p>まず引数の比較のために、今まで使ってきたTexImage2Dを確認します。</p>
+<pre class="brush: c#; first-line:237; highlight:[238]" title="02-10_main.cs:OnRenderFrame関数の一部">
+			//行列演算モードをTextureに設定
+			GL.MatrixMode(MatrixMode.Texture);
+			GL.LoadIdentity();
+			GL.Translate(-0.25f, -0.25f, 0.0f);
+			GL.Rotate(30f, Vector3.UnitZ);
+			GL.Scale(2.0f, 2.0f, 0.0f);
+</pre>
+<p>重要なのは一つだけ、GL.MatrixModeに、MatrixMode.Textureとすることです。</p>
+<p>あとはGL.LoadIdentity、GL.Translate、GL.Rotate、GL.Scale、GL.MultMatrixなどを用いて行列を変えるだけです。</p>
+<p>なお、動くのはテクスチャではないので、x軸に0.1動かしたらテクスチャが0.1だけx軸に沿って移動するわけではありません。あくまで、テクスチャを採集する点が動きます。</p>
+</div>
+
+<div class="segment">
+<p>今回行っている座標変換を表すと、こんな感じになっています。</p>
+<p align="center"><img src="OpenTK_misc/02-10_03.png" width="600px" height="600px" alt="TransformFigure"></p>
+</div>

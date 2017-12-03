@@ -1,0 +1,190 @@
+<h3>ライティングとは…</h3>
+<div class="segment">
+<p>ライティング(Lighting)は、光が物体に当たる状態を画面上で再現することです。今までの描画結果は、物体そのものが光っているという状態でした。</p>
+<p>現実世界にある物体のほとんどはそのものが光っているというわけではなく、どこからか届いた光によって照らされ、その反射を私たちが物体の色として認識しているわけです。</p>
+<p>OpenGLでは、物体の色(材質感)と光の色を使って、物体に光があたる状態をシミュレートします。</p>
+<p>しかし、シミュレートする…と言っても、現実の光の軌跡を完全に再現することはほぼ不可能です。そこで、近い効果が得られる簡単な処理に置き換えてシミュレートしています。</p>
+<p>一つにライティングと言っても、奥が深くてさまざまな方法がありますが、OpenGLのライティングは下のような光成分を使ってシミュレートします。</p>
+<dl class="listLike">
+	<dt>環境光(Ambient)</dt>
+	<dd>方向が特定不能な、周囲からの間接光を再現する。定数で近似する。</dd>
+	<dt>拡散光(Diffuse)</dt>
+	<dd>一方向からの光の中で、物体内に入って散乱したもの。一部の光は物体に吸収され、物体を出るものはすべての方向に放射されると考える。</dd>
+	<dt>鏡面光(Specular)</dt>
+	<dd>特定の方向からの光の中で、物体表面で正反射(普通の反射)したもの。見る角度によって輝いてみえる要素。</dd>
+	<dt>放射光(Emission)</dt>
+	<dd>物体自体からの発光。光を当てなくても色が見える。</dd>
+</dl>
+</div>
+
+<h3>法線とカリング</h3>
+<div class="segment">
+<p>光が何か物に当たるとき、物の面の角度によって色の見え方が違ってきます(拡散光)。また、物の面に反射して蛍光灯の明かりが見えることもあります(鏡面光)。</p>
+<p>これが何を意味するのかと言うと、物の面の向きによって光が当たった結果が違うということです。ということで、ライティングのためには面の向きの情報が必要になってくるのですが、どのように情報を加えるべきでしょうか？</p>
+<p>そこで、あまり聞きなれない言葉かもしれませんが、法線ベクトルという物を使います。法線ベクトルは面に対して垂直なベクトルで、数学ではこれを使って面同士の関係を示したりします。</p>
+<p>気を付けなければならないのは、法線ベクトルは数学では(私が知っている限り)平面の向きを表すのに使いますが、OpenGLでは頂点に法線ベクトルを指定して、なめらかな面を表示したりします。</p>
+<p>ただ、ベクトル演算のほとんどはOpenTK付属のライブラリで片付けられるので、面に垂直に出ているベクトル…程度の知識で十分だと思います。</p>
+</div>
+
+<div class="segment">
+<p>面には表と裏があります。OpenGLの場合、特に指定しなければ両面が描画されることになります。</p>
+<p>3Dゲームをやったことがある方ならわかるかもしれませんが、通常の3Dソフトウェアは表面だけを描画するため、物体の中に入ると変な表示になったりします。</p>
+<p>この、片面だけ表示する(=片面を描画しない)というのがカリングです。面の表を判断する要素は、面の頂点の順番です。OpenTKの場合は指定しなければ、頂点の順番が反時計回りになっているように見える面が表になります。</p>
+</div>
+
+<h3>3Dらしい描画結果</h3>
+<div class="segment">
+<p align="center"><img src="OpenTK_misc/01-04_01.png" width="800px" height="600px" alt="Lighting(1)"><br />球と立方体を描画</p>
+<p><a href="https://github.com/occar421/region_OpenTK/tree/master/01-04" target="_blank">ソースコード</a>は、GL.Enableの処理や、結果を見やすくするための処理で大きくなってしまいました。</p>
+<p>光や材質の処理も多いので、気を付ける必要があります。</p>
+<p>今回は平行光源を用いました。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:38;" title="01-04_main.cs:フィールド/初期化">
+		Vector4 lightPosition;
+		Color4 lightAmbient;
+		Color4 lightDiffuse;
+		Color4 lightSpecular;
+
+		Color4 materialAmbient;
+		Color4 materialDiffuse;
+		Color4 materialSpecular;
+		float materialShininess;
+
+		//800x600のウィンドウを作る。タイトルは「1-4:Lighting(1)」
+		public Game()
+			: base(800, 600, GraphicsMode.Default, "1-4:Lighting(1)")
+		{
+			lightPosition = new Vector4(200.0f, 150f, 500.0f, 0.0f);
+			lightAmbient = new Color4(0.2f, 0.2f, 0.2f, 1.0f);
+			lightDiffuse = new Color4(0.7f, 0.7f, 0.7f, 1.0f);
+			lightSpecular = new Color4(1.0f, 1.0f, 1.0f, 1.0f);
+
+			materialAmbient = new Color4(0.24725f, 0.1995f, 0.0225f, 1.0f);
+			materialDiffuse = new Color4(0.75164f, 0.60648f, 0.22648f, 1.0f);
+			materialSpecular = new Color4(0.628281f, 0.555802f, 0.366065f, 1.0f);
+			materialShininess = 51.4f;
+
+</pre>
+<p>ここで新しく追加された変数は、すべて光成分と材質の設定です。光は0.0～1.0の範囲で指定します。Shininessは、高いほど金属のような尖った光沢となります。</p>
+<p>光の位置の情報について、ベクトルの最後の要素でxyz成分を割ったものが光源の位置となります。最後の要素が0なら光源の位置は無限遠になるので、xyzから原点へ向かうような平行光源となります。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:138; highlight:[147,148,149,152,153,156];" title="01-04_main.cs:OnLoad関数">
+		//ウィンドウの起動時に実行される。
+		protected override void OnLoad(EventArgs e)
+		{
+			base.OnLoad(e);
+
+			GL.ClearColor(Color4.Black);
+			GL.Enable(EnableCap.DepthTest);
+
+			//裏面削除、反時計回りが表でカリング
+			GL.Enable(EnableCap.CullFace);
+			GL.CullFace(CullFaceMode.Back);
+			GL.FrontFace(FrontFaceDirection.Ccw);
+
+			//ライティングON Light0を有効化
+			GL.Enable(EnableCap.Lighting);
+			GL.Enable(EnableCap.Light0);
+
+			//法線の正規化
+			GL.Enable(EnableCap.Normalize);
+		}
+</pre>
+<p>カリングやライティングを行うのに重要な処理です。</p>
+<p>147～149行目でカリングの設定を行っています。まずGL.Enableでカリングを許可します。次にどちらの面を描画しないかをGL.CullFaceとCullFaceMode列挙体で決めます。描画する面ではないことに注意してください。最後に表を時計回りか反時計回りのどちらかにするという設定をGL.FrontFaceとFrontFaceDirection列挙体で決めます。Cw(Clockwise:時計回り)とCcw(CounterClockwise:反時計回り)があります。</p>
+<p>152行目のGL.Enableでライティングを許可します。また、153行目のGL.EnableでLight0の仕様を許可します。Lightは最低でも8コまで使うことができ、使うライトはGL.Enableで許可しなければなりません(EnableCap.Lightが8つある)。</p>
+<p>156行目のGL.Enableで法線の正規化を許可しています。法線ベクトルは正規化(ベクトルの長さを1にする行為)されている前提でライティングの計算が行われるので、法線ベクトルの長さがそろっていないと光の当たった結果がおかしくなってしまいます。それを防ぐため、OpenGLが自動で法線ベクトルを正規化するように設定します。(自分で正規化が行える場合は、この許可をしても処理が重くなるだけなので不必要です。ただ、いつの間にかベクトルが変換されたために、表示がおかしくなる場合があるので気を付けてください。)</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:233; highlight:[233,234,235,236,238,239,240,241];" title="01-04_main.cs:OnRenderFrame関数の一部">
+			GL.Light(LightName.Light0, LightParameter.Position, lightPosition);
+			GL.Light(LightName.Light0, LightParameter.Ambient, lightAmbient);
+			GL.Light(LightName.Light0, LightParameter.Diffuse, lightDiffuse);
+			GL.Light(LightName.Light0, LightParameter.Specular, lightSpecular);
+
+			GL.Material(MaterialFace.Front, MaterialParameter.Ambient, materialAmbient);
+			GL.Material(MaterialFace.Front, MaterialParameter.Diffuse, materialDiffuse);
+			GL.Material(MaterialFace.Front, MaterialParameter.Specular, materialSpecular);
+			GL.Material(MaterialFace.Front, MaterialParameter.Shininess, materialShininess);
+
+			GL.MatrixMode(MatrixMode.Modelview);
+			GL.PushMatrix();					//現在の(Modelview)行列をスタックに
+			GL.Translate(2 * Vector3.UnitX);	//X軸方向に2移動
+			DrawCube();							//立方体を描画
+			GL.PopMatrix();						//スタックから(Modelview)行列を取り出す
+			GL.PushMatrix();					//現在の行列をスタックに
+			GL.Translate(-2 * Vector3.UnitX);	//X軸方向に-2移動
+			DrawSphere();						//球を描画
+			GL.PopMatrix();						//スタックから(Modelview)行列を取り出す
+			
+			SwapBuffers();
+</pre>
+<p>233行目～236行目のGL.Light関数で光のパラメータを設定しています。第1引数でライトの番号、第2引数で設定する光の要素を指定して、第3引数でその情報を与えます。</p>
+<p>238行目～241行目のGL.Material関数で材質のパラメータを設定しています。第1引数で表と裏のどちらに適応するか、第2引数で設定する物質の要素を指定して、第3引数でその情報を与えます。</p>
+<p>243行目～251行目で立方体と球の描画をしていますが、これを読み解くにはGL.PushMatrix関数、GL.PopMatrix関数、GL.Translate関数について知る必要があります。</p>
+<p>GL.PushMatrixで現在の行列(今回はModelview行列)をスタックに退避し、GL.PopMatrixでスタックに退避したものを現在の行列に戻します。つまり、GL.PushMatrixとGL.PopMatrix内で現在の行列に何を作用させても、外には全く影響しないということです。</p>
+<p>GL.Translate関数は現在の行列に、平行移動の作用をさせる関数です。機能が似ている関数に、回転の作用をさせるGL.Rotate関数や、拡大の作用をさせるGL.Scale関数があります。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:261; highlight:[261];" title="01-04_main.cs:DrawCube関数の一部">
+			GL.Normal3(1.0f, 0.0f, 0.0f);
+			GL.Vertex3(1.0f, 1.0f, 1.0f);
+			GL.Vertex3(1.0f, -1.0f, 1.0f);
+			GL.Vertex3(1.0f, -1.0f, -1.0f);
+			GL.Vertex3(1.0f, 1.0f, -1.0f);
+</pre>
+<p>261行目にGL.Normal3という関数が出てきました。この関数が実行されると、OpenGLはその内容を法線ベクトルとして保持します。描画するときは保持されている法線ベクトルが法線となるので、面の描画の前にGL.Normal3を実行すれば、面の法線が指定したものになります。</p>
+<p>また、法線ベクトルは面ごとではなく頂点ごとに指定することもできます。頂点ごとに設定することでなめらか(に見えるように影がついたよう)な面が描画されます。(曲面内の微小平面の法線のイメージ)</p>
+</div>
+
+<h3>補足など</h3>
+<div class="segment">
+<p>球(Sphere)の描画は自作の関数で行っています。</p>
+<p align="center"><img src="OpenTK_misc/01-04_02.png" width="340px" height="340px" alt="Sphere"><br />球の描画手順</p>
+<p>球を輪切りにして、分けたパーツを描画します。分けたパーツはQuadStripを使って図の順番で頂点を設定します。</p>
+<pre class="brush: c#; first-line:300;" title="01-04_main.cs:DrawSphere関数">
+		//球を描画する
+		private void DrawSphere()
+		{
+			int slices = 16, stacks = 16;	//横と縦の分割数
+			double r = 1.24;				//半径
+			for (int i = 0; i &lt; stacks; i++)
+			{
+				//輪切り上部
+				double upper =  Math.PI / stacks * i;
+				double upperHeight = Math.Cos(upper);
+				double upperWidth = Math.Sin(upper);
+				//輪切り下部
+				double lower =  Math.PI / stacks * (i + 1);
+				double lowerHeight = Math.Cos(lower);
+				double lowerWidth = Math.Sin(lower);
+
+				GL.Begin(BeginMode.QuadStrip);
+				for (int j = 0; j &lt;= slices; j++)
+				{
+					//輪切りの面を単位円としたときの座標
+					double rotor = 2 * Math.PI / slices * j;
+					double x = Math.Cos(rotor);
+					double y = Math.Sin(rotor);
+
+					GL.Normal3(x * lowerWidth, lowerHeight, y * lowerWidth);
+					GL.Vertex3(r * x * lowerWidth, r * lowerHeight, r * y * lowerWidth);
+					GL.Normal3(x * upperWidth, upperHeight, y * upperWidth);
+					GL.Vertex3(r * x * upperWidth, r * upperHeight, r * y * upperWidth);
+				}
+				GL.End();
+			}
+		}
+</pre>
+</div>
+
+<div class="segment">
+<p>プログラムの実行結果の図を見てみると、球の光沢が少し変に見えると思います。これはグローシェーディング(Gouraud Shading)と言って、表示される面の色は、含まれる頂点での明るさを求めたものの線形補間で表示されます。</p>
+<p>グローシェーディングの利点は計算量が少ないこと(=処理が軽い)ですが、今回の例のように、ポリゴンが細かくないと不自然な表示になるのは欠点の一つです。</p>
+</div>

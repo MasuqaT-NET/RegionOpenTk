@@ -1,0 +1,115 @@
+<h3>形が変化するものを描画する</h3>
+<div class="segment">
+<p>今回は、描画ごとに物体の形状が変化するものを描画させます。今までは、物体を別の角度から見ることはあっても、その形を変化させることはありませんでした。</p>
+<p>そのため、一度物体のデータを送り込んでしまえば、それをずっと使い続ければよかったわけです。</p>
+<p>その処理は特に難しいものでは無く、記述する場所とオプションを変更すればOKです。</p>
+</div>
+
+<h3>構造体を用いる</h3>
+<div class="segment">
+<p>形状が変化するだけではプログラミング面ではあまり変化がないため、今回は構造体を使って頂点情報を定義します。</p>
+<p>それに伴って、VBOの数が1つになります。これは、一つのVBOに複数の頂点情報をまとめて格納できるためです。ただ、頂点情報の場所の指定(GL.VertexPointer等)の処理で注意が必要です。</p>
+</div>
+
+<h3>カラフル(?)な波の描画</h3>
+<div class="segment">
+<p align="center"><img src="OpenTK_misc/01-06_01.png" width="800px" height="600px" alt="VBO[3]"><br />波を描画</p>
+<p><a href="https://github.com/occar421/region_OpenTK/tree/master/01-06" target="_blank">ソースコード</a>は、OpenGLの処理自体の記述はあまり変わっていません。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:17;" title="01-06_main.cs:Vertex構造体">
+	struct Vertex
+	{
+		public Vector3 position;
+		public Vector3 normal;
+		public Color4 color;
+
+		public Vertex(Vector3 position, Vector3 normal, Color4 color)
+		{
+			this.position = position;
+			this.normal = normal;
+			this.color = color;
+		}
+
+		public static readonly int Size = Marshal.SizeOf(default(Vertex));
+	}
+</pre>
+<p>Vertex(=頂点)には、一つのオブジェクトで位置、法線、色の情報を持たせます。</p>
+<p>Sizeは、この構造体の一つのオブジェクトの大きさです。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:195;" title="01-06_main.cs:OnLoad関数の一部">
+			//各Arrayを有効化
+			GL.EnableClientState(ArrayCap.VertexArray);
+			GL.EnableClientState(ArrayCap.NormalArray);
+			GL.EnableClientState(ArrayCap.ColorArray);
+
+			//バッファを1コ生成
+			GL.GenBuffers(1, out vbo);
+
+			//バッファを1コ生成
+			GL.GenBuffers(1, out ibo);
+</pre>
+<p>今回はVBOもIBOも一つづつ使います。データを送り込む処理は、描画前に毎回行うことにしました。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:212;" title="01-06_main.cs:OnUnLoad関数の一部">
+			GL.DeleteBuffers(1, ref vbo);		//バッファを1コ削除
+			GL.DeleteBuffers(1, ref ibo);		//バッファを1コ削除
+
+			GL.DisableClientState(ArrayCap.VertexArray);	//VertexArrayを無効化
+			GL.DisableClientState(ArrayCap.NormalArray);	//NormalArrayを無効化
+			GL.DisableClientState(ArrayCap.ColorArray);		//ColorArrayを無効化
+</pre>
+<p>バッファの開放は忘れずに。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:306; highlight:[313,317,323,326,329]" title="01-06_main.cs:OnRenderFrame関数の一部">
+			//波を毎回生成
+			CreateWave(100, 100, 1.0f, 0.5f, 1.0f, 1.0f);
+
+
+			//毎回描画前にデータを送り込む
+			GL.BindBuffer(BufferTarget.ArrayBuffer, vbo);
+			int vertexArraySize = vertices.Length * Vertex.Size;
+			GL.BufferData&lt;Vertex&gt;(BufferTarget.ArrayBuffer, new IntPtr(vertexArraySize), vertices, BufferUsageHint.DynamicDraw);
+
+			GL.BindBuffer(BufferTarget.ElementArrayBuffer, ibo);
+			int indexArraySize = indices.Length * sizeof(int);
+			GL.BufferData(BufferTarget.ElementArrayBuffer, new IntPtr(indexArraySize), indices, BufferUsageHint.DynamicDraw);
+
+
+			GL.BindBuffer(BufferTarget.ArrayBuffer, vbo);
+
+			//頂点の位置情報の場所を指定
+			GL.VertexPointer(3, VertexPointerType.Float, Vertex.Size, 0);
+
+			//頂点の法線情報の場所を指定
+			GL.NormalPointer(NormalPointerType.Float, Vertex.Size, Vector3.SizeInBytes);
+
+			//頂点の色情報の場所を指定
+			GL.ColorPointer(4, ColorPointerType.Float, Vertex.Size, Vector3.SizeInBytes * 2);
+
+			//IBOを使って描画
+			GL.BindBuffer(BufferTarget.ElementArrayBuffer, ibo);
+			GL.DrawElements(BeginMode.Quads, indices.Length, DrawElementsType.UnsignedInt, 0);
+
+
+			//バッファのひも付けを解除
+			GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
+			GL.BindBuffer(BufferTarget.ElementArrayBuffer, 0);
+</pre>
+<p>300行目と304行目でGL.BufferData関数を使って、描画ごとにデータを送ってますが、最後の引数に注目してください。BufferUsageHint.DynamicDrawと指定してあります。</p>
+<p>これはバッファのアクセスに関する情報をGPUに伝え、より効果的な使い方をするような工夫です。DynamicDrawは、もっとも頻繁に内容が変わることを示します。</p>
+<p>323行目、326行目、329行目で、ひも付けされたVBOの中の情報の位置を指定しています。今までのものは第3引数が0でしたが、これは0を指定することでデータがぎっしり詰まっていることを伝えていました(関数の仕様)。位置情報はVertex.Sizeごとに現れ、その中でのずれは0、法線情報はVertex.Sizeごとに現れ、その中でのずれはVertex3の大きさ、色情報はVertex.Sizeごとに現れ、その中でのずれはVertex3の大きさ×2、ということになります。</p>
+<p align="center"><img src="OpenTK_misc/01-06_02.png" width="678px" height="154px" alt="Stride/Offset"><br />第3引数Stride(=Vertex.Size) 第4引数Offset(=0,Vector3.SizeInBytes等)</p>
+</div>
+
+<div class="segment">
+<p>波のモデルの生成部分は、グラフィックスの処理とは関係が無いので詳しくは書きません。</p>
+<p>中心からの距離と時間からある地点での高さを、関数を使って求め、その関数の導関数を使って法線を求めます。また、座標によって色を付けます。</p>
+</div>

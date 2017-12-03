@@ -1,0 +1,57 @@
+<h3>テクスチャでもアルファプレンディング</h3>
+<div class="segment">
+<p>今までポリゴンの色のα値を使って半透明処理を行っていたのと同じように、テクスチャを使ってもアルファブレンディングができます。</p>
+</div>
+
+<h3>(記事が薄い)</h3>
+<div class="segment">
+<p align="center"><img src="OpenTK_misc/02-03_01.png" width="800px" height="600px" alt="TextureAlphaBlending"><br />まるでガラスのよう</p>
+<p><a href="https://github.com/occar421/region_OpenTK/tree/master/02-03" target="_blank">ソースコード</a>は、アルファブレンディングとデプステストのコードを追加しています。</p>
+<p>今回は説明すべき場所がほぼありません。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:145;" title="02-03_main.cs:OnLoad関数内のテクスチャ生成部">
+			//テクスチャの色情報を作成
+			int size = 8;
+			float[, ,] colors = new float[size, size, 4];
+			for (int i = 0; i < colors.GetLength(0); i++)
+			{
+				for (int j = 0; j < colors.GetLength(1); j++)
+				{
+					colors[i, j, 0] = (float)i / size;
+					colors[i, j, 1] = (float)j / size;
+					colors[i, j, 2] = 0.0f;
+					//colors[i, j, 3] = ((float)i / size) * ((float)i / size) + ((float)j / size) * ((float)j / size);
+					colors[i, j, 3] = (float)(i * i + j * j) / (size * size);
+				}
+			}
+</pre>
+<p>左下からの距離をα値としています。</p>
+<pre class="brush: c#; first-line:247; highlight:[248, 258]" title="02-03_main.cs:OnRenderFrame関数の一部">
+			//奥のポリゴン表示
+			GL.BindTexture(TextureTarget.Texture2D, 0);
+			GL.Color4(Color4.Blue);
+			GL.Begin(BeginMode.Quads);
+			GL.Vertex3(1, 1, -1);
+			GL.Vertex3(-1, 1, -1);
+			GL.Vertex3(-1, -1, -1);
+			GL.Vertex3(1, -1, -1);
+			GL.End();
+
+			//メインのポリゴン表示
+			GL.BindTexture(TextureTarget.Texture2D, texture);
+			GL.Color4(Color4.White);
+			GL.Begin(BeginMode.Quads);
+			GL.TexCoord2(1.0, 1.0);
+			GL.Vertex3(1, 1, 0);
+			GL.TexCoord2(0.0, 1.0);
+			GL.Vertex3(-1, 1, 0);
+			GL.TexCoord2(0.0, 0.0);
+			GL.Vertex3(-1, -1, 0);
+			GL.TexCoord2(1.0, 0.0);
+			GL.Vertex3(1, -1, 0);
+			GL.End();
+</pre>
+<p>テクスチャを使いたくないときは、0を指定してひも付けを解除しましょう。設定によっては意図しない色が出力されます。</p>
+</div>

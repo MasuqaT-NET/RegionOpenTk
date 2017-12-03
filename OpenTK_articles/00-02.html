@@ -1,0 +1,22 @@
+<h3>ダウンロード</h3>
+<div class="segment">
+<p>OpenTKをダウンロードするには、<a href="http://www.opentk.com/project/opentk" target="_blank">The Open Toolkit library</a>のトップページにある、「Download OpenTK」をクリックします。そうするとダウンロードサイトに移動し、ダウンロードの準備ができます。</p>
+<p>おそらくダウンロードするファイルの名前はopentk-年-月-日.exeになっているはずです。</p>
+</div>
+
+<h3>インストール</h3>
+<div class="segment">
+<p align="center">ダウンロードが完了したら、「opento-年-月-日.exe」を実行します。<br />
+<br /><img src="OpenTK_misc/00-02_01.jpg" width="513px" height="399px" alt="契約文"><br />契約文をよく読んで、それに合意するなら「I Agree」を押します。<br />
+<br /><img src="OpenTK_misc/00-02_02.jpg" width="513px" height="399px" alt="インストール先"><br />インストール先を選び、「Next」を押します。<br />
+<br /><img src="OpenTK_misc/00-02_03.jpg" width="513px" height="399px" alt="ファイル選択"><br />インストールするファイルを選びます。「NShader plugin」はGLSLというシェーダー言語を記述するのに役立つのでぜひ入れておきましょう。<br />
+<br /><img src="OpenTK_misc/00-02_04.jpg" width="513px" height="399px" alt="インストール中"><br />…インストール中…<br />
+<br /><img src="OpenTK_misc/00-02_05.jpg" width="513px" height="399px" alt="完了画面"><br />これでインストールは終了です。</p>
+</div>
+
+<h3>OpenTKの使い方</h3>
+<div class="segment">
+<p>OpenTKのインストール先のフォルダを見ると、バージョン名のフォルダがあります。もし自分でソースコードをコンパイルして使いたい場合は、「OpenTK.sln」があるのでそれをVSで開いてコンパイルください。</p>
+<p>このフォルダ内のBinaries/OpenTK/Releaseには、いろいろとファイルが入っています。その中にはOpenTKを自作のソフトウェアで使う場合に必須の、「OpenTK.dll」というファイルがあります。このファイルはVisualStudioのソフトウェアのプロジェクトの参照に追加するべきです。</p>
+<p>「OpenTK.GLControl.dll」はWindowsFormアプリケーションやWPFに組み込む場合に使用します。「OpenTK.Compatibility.dll」はOpenGLのgluにあたるもののようです。「Example.exe」はOpenTKを使ったサンプルです。(動作が不安定なことがあるので注意)</p>
+</div>

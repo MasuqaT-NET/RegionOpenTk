@@ -1,0 +1,65 @@
+<h3>グラフィクスモードとは</h3>
+<div class="segment">
+<p>OpenGLを動かす環境にはさまざまなものがあります。そして、それら環境の初期設定はバラバラの可能性があります。また、ある表現方法を実現するために必要な設定や、不必要な設定が初期設定となっていることもあります。ステンシルバッファやアキュムレーションバッファがその例です。</p>
+<p>このような描画の設定がグラフィックスモードとなっています。描画に必要な情報の準備が行われる前に、モードの設定を行います。(GameWindowやGLControlを作る前)</p>
+<p>OpenTKのグラフィックスモードは、GLUTにおけるglutInitDisplayMode関数を、より細かく簡単に指定できるようにしたものという感じがします。</p>
+</div>
+
+<h3>文法以外はほとんど同じプログラム</h3>
+<div class="segment">
+<p><a href="https://github.com/occar421/region_OpenTK/tree/master/00-07" target="_blank">ソースコード</a>はGameWindowの場合です。</p>
+<pre class="brush: csharp; first-line:18; highlight:[21,24,27,30,33,36,39];" title="00-07_main.cs:Gameクラスのインスタンス生成">
+			GraphicsMode mode = new GraphicsMode(
+
+				//ColorFormat構造体を用いて、各色のピクセル当たりのビット数(カラーバッファのサイズ)
+				GraphicsMode.Default.ColorFormat,
+
+				//デプスバッファのサイズ
+				GraphicsMode.Default.Depth,
+
+				//ステンシルバッファのサイズ
+				GraphicsMode.Default.Stencil,
+
+				//AA(AntiAliasing)のサイズ x4 x8などの数字
+				GraphicsMode.Default.Samples,
+
+				//ColorFormat構造体を用いて、アキュムレーションバッファのサイズ
+				GraphicsMode.Default.AccumulatorFormat,
+
+				//バッファリングに使うフレームバッファの数 1(シングルバッファリング),2(ダブル-),3(トリプル-)
+				GraphicsMode.Default.Buffers,
+
+				//ステレオ投影をするかどうか
+				GraphicsMode.Default.Stereo);
+
+			using (Game window = new Game(mode))
+			{
+				window.Run(30.0);
+			}
+</pre>
+<p>もっとも引数の多いコンストラクタの場合を示します。各引数の役割はコメントのとおりです。</p>
+</div>
+<div class="segment">
+<pre class="brush: csharp; first-line:51; highlight:[53]" title="00-07_main.cs:Gameクラスのコンストラクタ">
+		//800x600のウィンドウを作る。タイトルは「0-7:GraphicsMode」
+		public Game(GraphicsMode mode)
+			: base(800, 600, mode, "0-7:GraphicsMode")
+		{
+			VSync = VSyncMode.On;
+		}
+</pre>
+<p>53行目でグラフィックスモードの設定をしています。いままでGraphicsMode.Defaultが指定されていた場所です。</p>
+</div>
+
+<h3>GameWindow以外の場合の指定</h3>
+<div class="segment">
+<pre class="brush: csharp; first-line:1; highlight:[53]" title="WinForm">
+GraphicsMode mode = GraphicsMode.Default;
+
+//WinForm InitializeComponent内
+this.glControl = new OpenTK.GLControl(mode);
+</pre>
+<p>WindowsFormsは、glControlを追加した状態でhoge.Designer.csの中を覗くと、GLControlを生成している場所があると思います。そのコンストラクタにGraphicsModeの変数を指定してください。
+</p>
+<p>WPFは、hogehoge.xamlでWindowsFormsHostに名前を付けて、コードビハインド(hogehoge.xaml.cs)で手動でGLControlを追加するという方法しか無さそうです。</p>
+</div>

@@ -1,0 +1,73 @@
+<h3>距離によるテクスチャの切り替え</h3>
+<div class="segment">
+<p>今回も一枚のポリゴンにテクスチャを複数枚指定しますが、1つの場所(≠1枚のポリゴン)に複数が同時に表示されるものではありません。</p>
+<p>表示に使われるテクスチャは、視点との距離によって選ばれます。こうすることによって、描画速度を良くし、不自然な表示を減らすことができます(ただしメモリを多く使います)。</p>
+<p>今回はこれらの画像を重ねて表示させます。通常のミップマップでは小さいテクスチャは大きいものの粗い画像にしますが、今回は動作を見やすくするために別の色にしています。</p><p align="center"><img src="OpenTK_misc/02-07_01.png" width="400px" height="400px" alt="Texture1"><img src="OpenTK_misc/02-07_02.png" width="200px" height="200px" alt="Texture2"><img src="OpenTK_misc/02-07_03.png" width="100px" height="100px" alt="Texture3"></p>
+</div>
+
+<h3>ミップマップのレベルについて</h3>
+<div class="segment">
+<p>ミップマップに使われる画像にはレベルというものが付けられます。</p>
+<p>このレベルは最高品質の画像を0として、縦と横のサイズを半分にした画像を1、そのまた半分の画像を2、…として、1x1の画像になるまで続きます。</p>
+<p>カメラとの距離によって使うレベルが変わり、描画されることになります。</p>
+<p>なお、最近のOpenGLではミップマップ用の画像群を自動で生成する関数glGenerateMipmapがあるので、OpenTKでもGL.GenerateMipmapでミップマップの自動生成ができます。</p>
+</div>
+
+<h3>上手く使おうミップマップ</h3>
+<div class="segment">
+<p align="center"><img src="OpenTK_misc/02-07_04.png" width="800px" height="600px" alt="Mipmap"><br />通常の使い方ではありません</p>
+<p><a href="https://github.com/occar421/region_OpenTK/tree/master/02-07" target="_blank">ソースコード</a>は、気を付けなければならない設定があります。見やすさのためにポリゴンの大きさも弄ってあります。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:138; highlight:[139,141,144]" title="02-07_main.cs:OnLoad関数内のテクスチャ設定部">
+			//ベースになるミップマップレベルを指定
+			GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
+			//最大のミップマップレベルを指定
+			GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, 2);
+
+			//テクスチャの設定
+			GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.NearestMipmapNearest);
+			GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
+</pre>
+<p>まず最初に、ミップマップに関する設定を行います。</p>
+<p>GL.TexParameterで、TextureBaseLevelとTextureMaxLevelを指定します。前者は最高品質の画像のレベル、後者は最低品質の画像のレベルです。特に指定しない場合、すべてのレベルのテクスチャを揃える必要があります。</p>
+<p>GL.TexParameterでTextureMinFilterは、以前も紹介しましたが、ミップマップを使う場合は設定の選択肢が増えます。下が増えた選択肢です。(TextureMinFilter.[通常設定]Mipmap[Mipmap設定])</p>
+<dl class="enums">
+<dt>NearestMipmapNearst</dt>
+<dd>ミップマップのレベルが一番近いテクスチャを使い、一番場所が近いピクセルを採用</dd>
+<dt>NearestMipmapLinear</dt>
+<dd>ミップマップのレベル近いものを線形補間し、その中で一番場所が近いピクセルを採用</dd>
+<dt>LinearMipmapNearst</dt>
+<dd>ミップマップのレベルが一番近いテクスチャを使い、付近のピクセルから線形補間</dd>
+<dt>LinearMipmapLinear</dt>
+<dd>ミップマップのレベル近いものを線形補間し、その中の付近のピクセルから線形補間</dd>
+</dl>
+<pre class="brush: c#; first-line:147; highlight:[160, 164]" title="02-07_main.cs:OnLoad関数内のミップマップ生成部">
+			for (int i = 0; i < 3; i++)
+			{
+				//picture.pngの読み込み
+				Bitmap file = new Bitmap("02-07_picture[" + i + "].png");
+
+				//png画像の反転を直す
+				file.RotateFlip(RotateFlipType.RotateNoneFlipY);
+
+				//データ読み込み
+				BitmapData data = file.LockBits(new Rectangle(0, 0, file.Width, file.Height), ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+
+				//テクスチャ用バッファに色情報を流し込む
+				//本来は、2^n,2^(n-1),2^(n-2),...,2,1のような、四方のテクスチャ群を用意する
+				GL.TexImage2D(TextureTarget.Texture2D, i, PixelInternalFormat.Rgba, data.Width, data.Height, 0, OpenTK.Graphics.OpenGL.PixelFormat.Bgra, PixelType.UnsignedByte, data.Scan0);
+			}
+
+			//Mipmapの自動生成
+			//GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
+</pre>
+<p>ミップマップの生成自体は難しくありません。GL.TexImage2Dの2番目の引数に、ミップマップのレベルを指定するだけです。(いままでは0で固定していたと思います。)</p>
+<p>GL.GenerateMipmap関数を使うときは、ミップマップのレベルが0(つまり今まで通り)のテクスチャ情報を流し込んでおきます。(※コメントアウトを解除してもそのままでは正しく動きません。)</p>
+</div>
+
+<div class="segment">
+<p>各描画結果は下のようになります。</p>
+<p align="center"><img src="OpenTK_misc/02-07_05.png" width="400px" height="300px" alt="Mipmap1"><img src="OpenTK_misc/02-07_06.png" width="400px" height="300px" alt="Mipmap2"><img src="OpenTK_misc/02-07_07.png" width="400px" height="300px" alt="Mipmap3"><img src="OpenTK_misc/02-07_08.png" width="400px" height="300px" alt="Mipmap4"><img src="OpenTK_misc/02-07_09.png" width="400px" height="300px" alt="Mipmap5"><img src="OpenTK_misc/02-07_10.png" width="400px" height="300px" alt="Mipmap6"></p>
+</div>

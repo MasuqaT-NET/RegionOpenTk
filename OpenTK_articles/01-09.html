@@ -1,0 +1,202 @@
+<h3>後ろが透けて見える</h3>
+<div class="segment">
+<p>アルファブレンディングという言葉だけでは、もしかしたら難しく聞こえるかもしれませんが、ただ単純に半透明のポリゴンを描画してやるということです。</p>
+<p>普段はちょっとOpenGLの設定をしたらすぐに意識しなくなりますが、あえていろいろなバリエーションを動作させてみたいと思います。</p>
+</div>
+
+<h3>「アルファ(α)」とは何か</h3>
+<div class="segment">
+<p>グラフィックでαというのは、通常は色の要素の一つを指します。色は赤(R)、緑(G)、青(B)で表されますが、ここに透明度としてアルファ(α)を加えます。</p>
+<p>αとは言いますが、プログラミングで用いられる場合はAという要素名になることが多いようです。</p>
+</div>
+
+<div class="segment">
+<p>OpenTKにはColor4という構造体が用意されており、アルファ値も色として含まれています。</p>
+<p>GL.Beginを使った描画にはColor4とColor3がありますが、これには前者がα有り、後者がα無しという違いがあります。</p>
+<p>Color4構造体の静的プロパティを使う場合、Transparent以外はすべてα値が255(つまり不透明)のため注意してください。</p>
+</div>
+
+<h3>アルファブレンディングの種類</h3>
+<div class="segment">
+<p>一口にアルファブレンディングと言っても、いくつか種類があります。</p>
+<dl class="listLike">
+	<dt>ブレンディング無し</dt>
+	<dd>アルファブレンディングをオフにしている場合</dd>
+	<dd>計算式:<math xmlns="http://www.w3.org/1998/Math/MathML"><mi>Color</mi><mo>=</mo><mi>Src</mi><mo>=</mo><mi>Src</mi><mo>&times;</mo><mo>[</mo><mn>1</mn><mo>]</mo><mo>+</mo><mi>Dest</mi><mo>&times;</mo><mo>[</mo><mn>0</mn><mo>]</mo></math></dd>
+	<dt>半透明合成</dt>
+	<dd>普段良く使うブレンディング</dd>
+	<dd>計算式:<math xmlns="http://www.w3.org/1998/Math/MathML"><mi>Color</mi><mo>=</mo><mi>Src</mi><mo>&times;</mo><mo>[</mo><mi>Src.A</mi><mo>]</mo><mo>+</mo><mi>Dest</mi><mo>&times;</mo><mo>[</mo><mn>1</mn><mo>-</mo><mi>Src.A</mi><mo>]</mo></math></dd>
+	<dt>加算合成</dt>
+	<dd>炎の表示などに光が集まるような場合に使うブレンディング</dd>
+	<dd>計算式:<math xmlns="http://www.w3.org/1998/Math/MathML"><mi>Color</mi><mo>=</mo><mi>Src</mi><mo>&times;</mo><mi>Src.A</mi><mo>+</mo><mi>Dest</mi><mo>=</mo><mi>Src</mi><mo>&times;</mo><mo>[</mo><mi>Src.A</mi><mo>]</mo><mo>+</mo><mi>Dest</mi><mo>&times;</mo><mo>[</mo><mn>1</mn><mo>]</mo></math></dd>
+	<dt>減算合成</dt>
+	<dd>ダークな表示をさせるときに使うブレンディング(らしい)</dd>
+	<dd>計算式:<math xmlns="http://www.w3.org/1998/Math/MathML"><mi>Color</mi><mo>=</mo><mo>-</mo><mi>Src</mi><mo>&times;</mo><mi>Src.A</mi><mo>+</mo><mi>Dest</mi><mo>=</mo><mo>-</mo><mi>Src</mi><mo>&times;</mo><mo>[</mo><mi>Src.A</mi><mo>]</mo><mo>+</mo><mi>Dest</mi><mo>&times;</mo><mo>[</mo><mn>1</mn><mo>]</mo></math></dd>
+	<dt>乗算合成</dt>
+	<dd>カラーセロハンを使ったようなブレンディング 画像加工にも</dd>
+	<dd>計算式:<math xmlns="http://www.w3.org/1998/Math/MathML"><mi>Color</mi><mo>=</mo><mi>Src</mi><mo>&times;</mo><mi>Dest</mi><mo>=</mo><mi>Src</mi><mo>&times;</mo><mo>[</mo><mi>Dest</mi><mo>]</mo><mo>+</mo><mi>Dest</mi><mo>&times;</mo><mo>[</mo><mn>0</mn><mo>]</mo><mo>=</mo><mi>Src</mi><mo>[</mo><mn>0</mn><mo>]</mo><mo>+</mo><mi>Dest</mi><mo>&times;</mo><mo>[</mo><mi>Src</mi><mo>]</mo></math></dd>
+	<dt>反転合成</dt>
+	<dd>フィルムカメラのネガのようになるブレンディング</dd>
+	<dd>計算式:<math xmlns="http://www.w3.org/1998/Math/MathML"><mi>Color</mi><mo>=</mo><mi>Src</mi><mo>&times;</mo><mo>(</mo><mn>1.0</mn><mo>-</mo><mi>Dest</mi><mo>)</mo><mo>=</mo><mi>Src</mi><mo>&times;</mo><mo>[</mo><mn>1</mn><mo>-</mo><mi>Dest</mi><mo>]</mo><mo>+</mo><mi>Dest</mi><mo>&times;</mo><mo>[</mo><mn>0</mn><mo>]</mo></math></dd>
+</dl>
+<p>※Srcは上から重ねる色、Destは元の色、Src.AとDest.Aはそれぞれのアルファ値です。</p>
+</div>
+
+<h3>プログラム</h3>
+<div class="segment">
+<p align="center"><img src="OpenTK_misc/01-09_01.png" width="800px" height="600px" alt="AlphaBlending"><br />通常の合成</p>
+<p><a href="https://github.com/occar421/region_OpenTK/tree/master/01-09" target="_blank">ソースコード</a>は、合成方法の指定に注目してください。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:153; highlight:[178,179];" title="01-09_main.cs:OnLoad関数">
+		//ウィンドウの起動時に実行される。
+		protected override void OnLoad(EventArgs e)
+		{
+			base.OnLoad(e);
+
+			GL.ClearColor(Color4.Gray);
+			GL.Enable(EnableCap.DepthTest);
+
+			//裏面削除、反時計回りが表でカリング
+			GL.Enable(EnableCap.CullFace);
+			GL.CullFace(CullFaceMode.Back);
+			GL.FrontFace(FrontFaceDirection.Ccw);
+
+			//ライティングON Light0を有効化
+			GL.Enable(EnableCap.Lighting);
+			GL.Enable(EnableCap.Light0);
+
+			//法線の正規化
+			GL.Enable(EnableCap.Normalize);
+
+			//色を材質に変換
+			GL.Enable(EnableCap.ColorMaterial);
+			GL.ColorMaterial(MaterialFace.Front, ColorMaterialParameter.Diffuse);
+
+			//アルファブレンディングの設定
+			GL.Enable(EnableCap.Blend);
+			GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha);
+
+			torus.CreateBuffers();
+			sphere.CreateBuffers();
+			plate.CreateBuffers();
+		}
+</pre>
+<p>まずは起動時に、アルファブレンディングを許可します(178行目)。そして、どのような式でブレンドするかを指定します(179行目)。指定しない場合はブレンドしない場合と同じになります。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:221; highlight:[228,248,257,258,268,278];" title="01-09_main.cs:OnUpdateFrame関数の一部">
+			//ブレンディング無し
+			if (Keyboard[Key.Z])
+			{
+				this.Title = "1-9:Alpha Blending(ブレンディング無し)";
+
+				GL.BlendEquation(BlendEquationMode.FuncAdd);//デフォルトに戻す
+				//色 = 前景 * (1.0) + 背景 * (0.0);
+				GL.BlendFunc(BlendingFactorSrc.One, BlendingFactorDest.Zero);
+			}
+
+			//半透明合成
+			if (Keyboard[Key.X])
+			{
+				this.Title = "1-9:Alpha Blending(半透明合成)";
+
+				GL.BlendEquation(BlendEquationMode.FuncAdd);//デフォルトに戻す
+				//色 = 前景 * (前景のアルファ値) + 背景 * (1.0-背景のアルファ値)
+				GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha);
+			}
+
+			//加算合成
+			if (Keyboard[Key.C])
+			{
+				this.Title = "1-9:Alpha Blending(加算合成)";
+
+				GL.BlendEquation(BlendEquationMode.FuncAdd);//デフォルトに戻す
+				//色 = 前景 * (前景のアルファ値) + 背景 * (1.0)
+				GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.One);
+			}
+
+			//減算合成
+			if (Keyboard[Key.V])
+			{
+				this.Title = "1-9:Alpha Blending(減算合成)";
+
+				//色 = - 前景 * (前景のアルファ値) + 背景 * (1.0)
+				GL.BlendEquation(BlendEquationMode.FuncReverseSubtract);
+				GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.One);
+			}
+
+			//乗算合成
+			if (Keyboard[Key.B])
+			{
+				this.Title = "1-9:Alpha Blending(乗算合成)";
+
+				GL.BlendEquation(BlendEquationMode.FuncAdd);//デフォルトに戻す
+				//色 = 前景 * (0.0) + 背景 * 前景
+				GL.BlendFunc(BlendingFactorSrc.Zero, BlendingFactorDest.SrcColor);
+			}
+
+			//反転合成
+			if (Keyboard[Key.N])
+			{
+				this.Title = "1-9:Alpha Blending(反転合成)";
+
+				GL.BlendEquation(BlendEquationMode.FuncAdd);//デフォルトに戻す
+				//色 = 前景 * (1.0 - 背景) + 背景 * (0.0)
+				GL.BlendFunc(BlendingFactorSrc.OneMinusDstColor, BlendingFactorDest.Zero);
+			}
+</pre>
+<p>それぞれの合成を行うためのBlendFunc関数は上記の通りになります。</p>
+<p>例外として、減算合成の場合はBlendEquation関数をいじる必要があります。257行目の意味は「背景の処理結果から前景の処理結果を引け」というものですが、通常の描画で使うことは少ないと思うため補足でパラメータを列挙しておきます。</p>
+<p>それぞれの合成の結果は下のようになります。</p>
+<p align="center"><img src="OpenTK_misc/01-09_02.png" width="400px" height="300px" alt="AlphaBlending1"><img src="OpenTK_misc/01-09_03.png" width="400px" height="300px" alt="AlphaBlending2"><img src="OpenTK_misc/01-09_04.png" width="400px" height="300px" alt="AlphaBlending3"><img src="OpenTK_misc/01-09_05.png" width="400px" height="300px" alt="AlphaBlending4"><img src="OpenTK_misc/01-09_06.png" width="400px" height="300px" alt="AlphaBlending5"><img src="OpenTK_misc/01-09_07.png" width="400px" height="300px" alt="AlphaBlending6"></p>
+</div>
+
+<h3>よく出てくる問題</h3>
+<div class="segment">
+<pre class="brush: c#; first-line:351; highlight:[353,360,367];" title="01-09_main.cs:OnRenderFrame関数の一部">
+			GL.MatrixMode(MatrixMode.Modelview);
+
+			plate.Draw();
+
+			//モデル描画
+			GL.PushMatrix();
+			GL.Translate(-1.5f, 0.0f, 0.0f);
+			GL.Rotate(angle, Vector3.UnitZ);
+
+			torus.Draw();
+
+			GL.PopMatrix();
+			GL.PushMatrix();
+			GL.Translate(1.5f, 0.0f, 0.0f);
+			GL.Rotate(angle, Vector3.UnitY);
+
+			sphere.Draw();
+
+			GL.PopMatrix();
+</pre>
+<p align="center"><img src="OpenTK_misc/01-09_08.png" width="800px" height="600px" alt="BadAlphaBlending"><br />悪い例(わかりやすいように球のアルファ値を1.0にしています。)</p>
+<p>この画像はほぼ同じプログラムを動作させたものですが、青い物体の後ろにあるべき球の色がありません。これは設定した描画順と、視点と物体の間の距離が違うということで起きるものです。</p>
+<p>この現象を簡単に防ぐためには、透明ポリゴンを最後に描画したり、透明ポリゴンを描画する間は深度テスト(描画するポリゴンを遮るポリゴンがあるかどうかの判定)をやめたりするなどの処理が必要になります。</p>
+<p>高度な予防法としては、マルチサンプリングやA-Bufferなどの方法があるようです。</p>
+</div>
+
+<h3>補足:GL.BlendEquation関数に渡すパラメータ一覧</h3>
+<div class="segment">
+<p>BlendEquationMode列挙体</p>
+<dl class="enums">
+<dt>FuncAdd</dt>
+<dd>通常の指定 前景と背景の処理結果の単純な足し算</dd>
+<dt>FuncSubtract</dt>
+<dd>前景の処理結果から背景の処理結果を引く</dd>
+<dt>FuncReverseSubtract</dt>
+<dd>背景の処理結果から前景の処理結果を引く</dd>
+<dt>Min</dt>
+<dd>前景と背景の処理結果の小さい方を選択</dd>
+<dt>Max</dt>
+<dd>前景と背景の処理結果の大きい方を選択</dd>
+</dl>
+<p>もし画像処理をする場合は、上の指定を組み合わせることになるかもしれません。</p>
+</div>

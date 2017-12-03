@@ -1,0 +1,38 @@
+<h3>テクスチャを外部ファイルから</h3>
+<div class="segment">
+<p>今まではポリゴンの色を全部自分で作っていました。しかし、実際の3Dゲームなどのテクスチャは、プログラム内で生成したものではなく、プログラムと一緒に同封されている画像ファイルから読み込んでいます。(生成しているものもあるようです)</p>
+<p>純粋なC言語ならfopen関数などを使って、色情報を読み込むプログラムを自分で書く必要がありますが、幸いにもC#には便利なクラスが最初から用意されています。</p>
+<p>今回は透過処理を施した、この画像を使います。角と文字を透明にしています。</p><p align="center"><img src="OpenTK_misc/02-04_01.png" width="240px" height="240px" alt="Texture"></p>
+</div>
+
+<h3>ポリゴンの形</h3>
+<div class="segment">
+<p>ファイル読み込みだけでは短いので、今回は同時にポリゴンの形を変えてい(るように見せかけ)ます。</p>
+<p>前回のように、アルファブレンディングでも可能ですが、今回はアルファテストを用います。</p>
+<p>注意すべき点は、ポリゴン自体の形が変化しているわけではないことです。これは、陰の生成などに影響することがあるでしょう。</p>
+</div>
+
+<h3>形はなんでもOK</h3>
+<div class="segment">
+<p align="center"><img src="OpenTK_misc/02-04_02.png" width="800px" height="600px" alt="TextureLoadClip"><br />角が丸くなって文字で切り抜かれている</p>
+<p><a href="https://github.com/occar421/region_OpenTK/tree/master/02-04" target="_blank">ソースコード</a>は、特に変わりません。アルファテストの閾値は0.5としました。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:147; highlight:[154, 157]" title="02-04_main.cs:OnLoad関数内のテクスチャ読み込み部">
+			//picture.pngの読み込み
+			Bitmap file = new Bitmap("picture.png");
+	
+			//png画像の反転を直す
+			file.RotateFlip(RotateFlipType.RotateNoneFlipY);
+
+			//データ読み込み
+			BitmapData data = file.LockBits(new Rectangle(0, 0, file.Width, file.Height), ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+
+			//テクスチャ用バッファに色情報を流し込む
+			GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, data.Width, data.Height, 0, OpenTK.Graphics.OpenGL.PixelFormat.Rgba, PixelType.UnsignedByte, data.Scan0);
+</pre>
+<p>BitmapクラスはSystem.Drawing名前空間に、BitmapDataクラスはSystem.Drawing.Imaging名前空間に定義されています。今回はusingしていますが、その場合OpenTKとクラス名で競合が起こるものがあるので注意が必要です。</p>
+<p>GL.TexImage2Dの引数は、順に「テクスチャの対象」、「ミップマップのレベル」、「色の格納法」、「テクスチャ幅」、「テクスチャ高さ」、「枠線の幅」、「画像の色の順番」、「画像の色のデータ型」、「色情報源」です。凝るわけでなければ、ここの指定はほとんど同じでいいと思います。</p>
+<p>「枠線の幅」は0である必要があります。「ミップマップのレベル」も、今は0にしてください。「画像の色の順番」は画像フォーマットによって指定が違うので、なんだか色がおかしいと思ったらここを疑ってみてください。「画像の色のデータ型」は、普通の画像を用いるならUnsignedByteを指定してください。ただし、自分で生成した場合や、より高精度の画像形式の場合は変更する必要があるかもしれません。「色情報源」は、1～3次元の配列か、IntPtr(最初のアドレス)です。ここではBitmapDataクラスのScan0メソッドで、色情報の最初のアドレスを取得しています。</p>
+</div>

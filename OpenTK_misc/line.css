@@ -1,0 +1,183 @@
+@CHARSET "UTF-8";
+
+body{
+	text-align:center;
+	background-color:Snow;
+	font-family:Meiryo,Hiragino Kaku Gothic Pro,sans-serif;
+}
+
+#wrap{
+	text-align:left;
+	width:1200px;
+	margin:0px auto;
+	padding:10px;
+	background-color:PaleTurquoise;
+}
+
+header{
+	padding:12px;
+	padding-left:27px;
+}
+
+#bar{
+	float:right;
+	width:270px;
+	padding:12px;
+	margin:10px 0px 10px 5px;
+	font-size:16px;
+}
+
+#main{
+	float:left;
+	width:870px;
+	padding:12px;
+	margin:10px 5px 10px 0px;
+	border-radius:10px;
+	font-size:18px;
+}
+
+footer{
+	clear:both;
+	padding:6px;
+	text-align:center;
+}
+
+header h1{
+	color:DarkOrange;
+	font-family:Verdana;
+	font-size:40px;
+}
+
+#main h2{
+	color:ForestGreen;
+	margin:0px;
+	padding:10px;
+	border-left:solid 10px DarkSeaGreen;
+	border-bottom:solid 5px DarkSeaGreen;
+}
+
+#main h3{
+	padding:7px;
+	color:DarkGreen;
+	border-left:solid 5px LimeGreen;
+	margin-left:1em;
+}
+
+#main p,ul,ol{
+	margin-left:2em;
+}
+
+#main dl.listLike{
+	margin-left:2em;
+}
+
+#main dl.listLike dt{
+	display:list-item;
+	list-style-type:disc;
+	margin-left:1em;
+}
+
+#main dl.functions{
+	margin-left:2em;
+	border:solid 3px DarkSeaGreen;
+	padding:5px;
+}
+
+#main dl.enums{
+	margin-left:2em;
+	border:solid 3px DarkGoldenrod;
+	padding:5px;
+}
+
+#main dl.enums dt:before{
+	content:"\02727";
+}
+
+#main img{
+	box-shadow:0px 0px 10px DarkSlateGray;
+}
+
+#main div.segment:not(:last-of-type){
+	margin-bottom:3em;
+}
+
+#bar h4{
+	margin:0px;
+	margin-top:20px;
+	padding:2px;
+	border-bottom:solid 3px DarkGreen;
+}
+
+#bar ul{
+	margin:0px;
+	padding:0px;
+}
+
+#bar li{
+	list-style-type:none;
+}
+
+#bar li.expander{
+	border-left:2px solid RoyalBlue;
+	margin-top:2px;
+	padding:2px;
+}
+
+#bar li.expander input{
+	display:none;
+}
+
+#bar li.expander label{
+	cursor:pointer;
+	color:Black;
+}
+
+#bar li.expander input+label:before{
+	/*deleted*/
+}
+
+#bar li.expander input:checked+label:before{
+	/*deleted*/
+}
+
+#bar li.expander input~ul{
+	display:none;
+}
+
+#bar li.expander input:checked~ul{
+	display:inline;
+}
+
+#bar li.expander label+ul>li>a{
+	margin-left:1em;
+}
+
+#bar a{
+	color:SteelBlue;
+	text-decoration:none;
+	font-size:14.5px;
+}
+
+#bar a:hover{
+	text-decoration:underline;
+}
+
+#main ol.index{
+	border:solid 3px DarkTurquoise;
+	padding-top:10px;
+	padding-bottom:10px;
+	color:SeaGreen;
+}
+
+#main ol.index a{
+	text-decoration:none;
+	color:DarkOliveGreen;
+}
+
+#main ol.index a:hover{
+	text-decoration:underline;
+}
+
+.syntaxhighlighter {
+  box-shadow:0px 0px 10px #333333;
+}

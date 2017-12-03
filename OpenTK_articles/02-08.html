@@ -1,0 +1,174 @@
+<h3>より複雑なテクスチャの合成</h3>
+<div class="segment">
+<p><a href="OpenTK02-05.php">テクスチャの合成</a>で紹介したように、ポリゴンに対して複数の色情報をどう使うかという設定があります。</p>
+<p>TextureEnvModeにはAdd、Blend、Decal、Modulate、Replace、そしてCombineがあり、今回はその中のCombineだけについての説明です。</p>
+<p>Combineではとても複雑なこともできますが、その場合は素直にシェーダーを用いたほうが簡単です。(そもそも、固定機能自体が非推奨なのですが…)</p>
+<p>今回はこれらの画像を合成します。ダミーのテクスチャにする画像のサイズは何でもいいのですが、他のものと同じサイズにしました。</p><p align="center"><img src="OpenTK_misc/02-08_01.png" width="200px" height="200px" alt="Texture1"><img src="OpenTK_misc/02-08_02.png" width="200px" height="200px" alt="Texture2"><img src="OpenTK_misc/02-08_03.png" width="200px" height="200px" alt="Texture3"></p>
+</div>
+
+<h3>合成の工程</h3>
+<div class="segment">
+<p>以前は特に言及していませんでしたが、テクスチャの合成はポリゴン色をベースとして、TextureUnitで数字が小さいものから順に行われていきます。</p>
+<p>もしテクスチャの色情報だけを使いたい場合は、Unit0ではReplaceとしておく必要があるなど、注意が必要です。</p>
+<p>複雑な合成でも、前のテクスチャ合成の結果を使ってさらに合成するということの繰り返しとなります。</p>
+<p>また、ダミーのテクスチャを使ったUnitを使って合成を行うというテクニックもあるようです。</p>
+</div>
+
+<h3>設定が面倒なCombine…</h3>
+<div class="segment">
+<p align="center"><img src="OpenTK_misc/02-08_04.png" width="800px" height="600px" alt="Combine"><br />線形補完、減算</p>
+<p><a href="https://github.com/occar421/region_OpenTK/tree/master/02-08" target="_blank">ソースコード</a>は、Combineの設定にだけ注目してください。ちなみに、テクスチャの色は白です。</p>
+<p>※列挙体(Enum)の一覧は途中に挿入すると見づらくなるため、ページの一番後ろに載せています。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:170;" title="02-08_main.cs:Combine Unit0">
+			GL.ActiveTexture(TextureUnit.Texture0);
+			GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.TextureEnvMode, (int)TextureEnvMode.Replace);
+</pre>
+<p>ここでは今までのモードのReplaceを使い、ベースにポリゴンの色を使わないという設定をします。</p>
+<p align="center"><img src="OpenTK_misc/02-08_05.png" width="400px" height="300px" alt="Unit0"></p>
+</div>
+<div class="segment">
+<pre class="brush: c#; first-line:173; highlight:[174, 177, 185];" title="02-08_main.cs:Combine Unit1">
+			GL.ActiveTexture(TextureUnit.Texture1);
+			GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.TextureEnvMode, (int)TextureEnvMode.Combine);
+			GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.TextureEnvColor, new float[] { 1.0f, 1.0f, 1.0f, 0.6f });
+
+			GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.CombineRgb, (int)TextureEnvModeCombine.Interpolate);
+			GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.Source0Rgb, (int)TextureEnvModeSource.Previous);
+			GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.Src1Rgb, (int)TextureEnvModeSource.Texture);
+			GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.Src2Rgb, (int)TextureEnvModeSource.Constant);
+			GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.Operand0Rgb, (int)TextureEnvModeOperandRgb.SrcColor);
+			GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.Operand1Rgb, (int)TextureEnvModeOperandRgb.SrcColor);
+			GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.Operand2Rgb, (int)TextureEnvModeOperandRgb.SrcAlpha);
+
+			GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.CombineAlpha, (int)TextureEnvModeCombine.Modulate);
+			GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.Src0Alpha, (int)TextureEnvModeSource.Previous);
+			GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.Src1Alpha, (int)TextureEnvModeSource.Texture);
+			GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.Operand0Alpha, (int)TextureEnvModeOperandAlpha.SrcAlpha);
+			GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.Operand1Alpha, (int)TextureEnvModeOperandAlpha.SrcAlpha);
+
+</pre>
+<p>ここでようやくCombineを使います。</p>
+<p>Combineでは、RGBとα(透明度)を別々に合成することになります。</p>
+<p>CombineRgb(Alpha)で、合成に使う式を指定します。</p>
+<p>Source?Rgb(Alpha)またはSrc?Rgb(Alpha)で、合成に使う色情報を指定します。</p>
+<p>Operand?Rgb(Alpha)で、使う色情報への加工(と言っても1から減算など)を指定します。</p>
+<p>ここのCombineの指定について、RgbはUnit0の結果(Previous)とUnit1のテクスチャを0.6(EnvColor.Alpha)で線形補間、AlphaはUnit0の結果(Previous)とUnit1のテクスチャを乗算、となります。</p>
+<p>Unit1の出力は、CをRgb、AをAlphaとして、<br />
+<math xmlns="http://www.w3.org/1998/Math/MathML"><msub><mi>C</mi><mi>Unit1</mi></msub><mo>=</mo><msub><mi>C</mi><mi>Unit0</mi></msub><mo>&InvisibleTimes;</mo><msub><mi>A</mi><mi>Env</mi></msub><mo>+</mo><msub><mi>C</mi><mi>Tex1</mi></msub><mo>&InvisibleTimes;</mo><mfenced><mrow><mn>1</mn><mo>-</mo><msub><mi>A</mi><mi>Env</mi></msub></mrow></mfenced></math><br />
+<math xmlns="http://www.w3.org/1998/Math/MathML"><msub><mi>A</mi><mi>Unit1</mi></msub><mo>=</mo><msub><mi>A</mi><mi>Unit0</mi></msub><mo>&InvisibleTimes;</mo><msub><mi>A</mi><mi>Tex1</mi></msub></math><br />
+となります。</p>
+<p align="center"><img src="OpenTK_misc/02-08_06.png" width="400px" height="300px" alt="Unit1"></p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:191; highlight:[192, 194, 200];" title="02-08_main.cs:Combine Unit2">
+			GL.ActiveTexture(TextureUnit.Texture2);
+			GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.TextureEnvMode, (int)TextureEnvMode.Combine);
+			
+			GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.CombineRgb, (int)TextureEnvModeCombine.Subtract);
+			GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.Source0Rgb, (int)TextureEnvModeSource.PrimaryColor);
+			GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.Src1Rgb, (int)TextureEnvModeSource.Previous);
+			GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.Operand0Rgb, (int)TextureEnvModeOperandRgb.SrcColor);
+			GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.Operand1Rgb, (int)TextureEnvModeOperandRgb.SrcColor);
+
+			GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.CombineAlpha, (int)TextureEnvModeCombine.Modulate);
+			GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.Src0Alpha, (int)TextureEnvModeSource.Previous);
+			GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.Src1Alpha, (int)TextureEnvModeSource.Texture);
+			GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.Operand0Alpha, (int)TextureEnvModeOperandAlpha.SrcAlpha);
+			GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.Operand1Alpha, (int)TextureEnvModeOperandAlpha.SrcAlpha);
+</pre>
+<p>ここのCombineの指定について、Rgbはテクスチャ色(PrimaryColor)からUnit1の結果(Previous)を引いたもの、AlphaはUnit0の結果(Previous)とUnit1のテクスチャを乗算、となります。</p>
+<p>Unit2の出力は、CをRgb、AをAlphaとして、<br />
+<math xmlns="http://www.w3.org/1998/Math/MathML"><msub><mi>C</mi><mi>Unit2</mi></msub><mo>=</mo><msub><mi>C</mi><mi>Porygon</mi></msub><mo>-</mo><msub><mi>C</mi><mi>Unit1</mi></msub></math><br />
+<math xmlns="http://www.w3.org/1998/Math/MathML"><msub><mi>A</mi><mi>Unit2</mi></msub><mo>=</mo><msub><mi>A</mi><mi>Unit1</mi></msub><mo>&InvisibleTimes;</mo><msub><mi>A</mi><mi>Tex2</mi></msub></math><br />
+となります。</p>
+<p align="center"><img src="OpenTK_misc/02-08_07.png" width="400px" height="300px" alt="Unit2"></p>
+</div>
+<div class="segment">
+<p>Unit3以降は使っていないため、表示されるものはC<sub>Unit2</sub>とA<sub>Unit2</sub>になります。</p>
+<p>よって、実際に処理される計算式は、CをRgb、AをAlphaとして、<br />
+<math xmlns="http://www.w3.org/1998/Math/MathML"><msub><mi>C</mi><mi>out</mi></msub><mo>=</mo><msub><mi>C</mi><mi>Porygon</mi></msub><mo>-</mo><mfenced><mrow><msub><mi>C</mi><mi>Tex0</mi></msub><mo>&InvisibleTimes;</mo><msub><mi>A</mi><mi>Env</mi></msub><mo>+</mo><msub><mi>C</mi><mi>Tex1</mi></msub><mo>&InvisibleTimes;</mo><mfenced><mrow><mn>1</mn><mo>-</mo><msub><mi>A</mi><mi>Env</mi></msub></mrow></mfenced></mrow></mfenced></math><br />
+<math xmlns="http://www.w3.org/1998/Math/MathML"><msub><mi>A</mi><mi>out</mi></msub><mo>=</mo><msub><mi>A</mi><mi>Tex0</mi></msub><mo>&InvisibleTimes;</mo><msub><mi>A</mi><mi>Tex1</mi></msub><mo>&InvisibleTimes;</mo><msub><mi>A</mi><mi>Tex2</mi></msub></math><br />
+となります。</p>
+</div>
+
+<h3>各種列挙体</h3>
+<div class="segment">
+<p>TextureEnvParameterの中でCombineに使う物をを以下に示します。(GL.TexEnvの第2引数)</p>
+<dl class="enums">
+<dt>TextureEnvMode</dt>
+<dd>合成の方法を指定 Combineを使う場合はTextureEnvMode.Combineを指定</dd>
+<dt>TextureEnvColor</dt>
+<dd>Combineの場合、色情報にConstantを指定したときに使われる色</dd>
+<dt>CombineRgb</dt>
+<dd>CombineのRGBの合成で使う計算式を指定 TextureEnvModeCombineを参照してください</dd>
+<dt>CombineAlpha</dt>
+<dd>Combineのα値の合成で使う計算式を指定 TextureEnvModeCombineを参照してください</dd>
+<dt>Source?Rgb,Src?Rgb</dt>
+<dd>RGBの計算式のNo.?要素を指定 TextureEnvModeSourceを参照してください 使われ方はTextureEnvModeCombineを参照してください</dd>
+<dt>Source?Alpha,Src?Alpha</dt>
+<dd>α値の計算式のNo.?要素を指定 TextureEnvModeSourceを参照してください 使われ方はTextureEnvModeCombineを参照してください</dd>
+<dt>Operand?Rgb</dt>
+<dd>RGBの計算式のNo.?要素への加工を指定 TextureEnvModeOperandRgbを参照してください</dd>
+<dt>Operand?Alpha</dt>
+<dd>α値の計算式のNo.?要素への加工を指定 TextureEnvModeOperandAlphaを参照してください</dd>
+</dl>
+</div>
+
+<div class="segment">
+<p>GL.TextEnvの第3引数</p>
+<p>CombineRgbとCombineAlphaで使われる、TextureEnvModeCombineを以下に示します。</p>
+<dl class="enums">
+<dt>Replace</dt>
+<dd>No.0要素で置き換える</dd>
+<dd>計算式:<math xmlns="http://www.w3.org/1998/Math/MathML"><mi>Color</mi><mo>or</mo><mi>Alpha</mi><mo>=</mo><msub><mi>arg</mi><mn>0</mn></msub></math></dd>
+<dd>※TextureEnvMode.Replace相当</dd>
+<dt>Modulate</dt>
+<dd>No.0要素とNo.1要素で乗算合成</dd>
+<dd>計算式:<math xmlns="http://www.w3.org/1998/Math/MathML"><mi>Color</mi><mo>or</mo><mi>Alpha</mi><mo>=</mo><msub><mi>arg</mi><mn>0</mn></msub><mo>&InvisibleTimes;</mo><msub><mi>arg</mi><mn>1</mn></msub></math></dd>
+<dd>※TextureEnvMode.Modulate相当</dd>
+<dt>Add</dt>
+<dd>No.0要素とNo.1要素で加算合成</dd>
+<dd>計算式:<math xmlns="http://www.w3.org/1998/Math/MathML"><mi>Color</mi><mo>or</mo><mi>Alpha</mi><mo>=</mo><msub><mi>arg</mi><mn>0</mn></msub><mo>+</mo><msub><mi>arg</mi><mn>1</mn></msub></math></dd>
+<dd>※TextureEnvMode.Add相当</dd>
+<dt>AddSigned</dt>
+<dd>No.0要素とNo.1要素を加算して0.5を引く</dd>
+<dd>計算式:<math xmlns="http://www.w3.org/1998/Math/MathML"><mi>Color</mi><mo>or</mo><mi>Alpha</mi><mo>=</mo><msub><mi>arg</mi><mn>0</mn></msub><mo>+</mo><msub><mi>arg</mi><mn>1</mn></msub><mo>-</mo><mn>0.5</mn></math></dd>
+<dt>Interpolate</dt>
+<dd>No.0要素とNo.1要素でNo.2要素を係数とする線形補間</dd>
+<dd>計算式:<math xmlns="http://www.w3.org/1998/Math/MathML"><mi>Color</mi><mo>or</mo><mi>Alpha</mi><mo>=</mo><msub><mi>arg</mi><mn>0</mn></msub><mo>&InvisibleTimes;</mo><msub><mi>arg</mi><mn>2</mn></msub><mo>+</mo><msub><mi>arg</mi><mn>1</mn></msub><mo>&InvisibleTimes;</mo><mfenced><mrow><mn>1</mn><mo>-</mo><msub><mi>arg</mi><mn>2</mn></msub></mrow></mfenced></math></dd>
+<dt>Subtract</dt>
+<dd>No.0要素とNo.1要素で減算合成</dd>
+<dd>計算式:<math xmlns="http://www.w3.org/1998/Math/MathML"><mi>Color</mi><mo>or</mo><mi>Alpha</mi><mo>=</mo><msub><mi>arg</mi><mn>0</mn></msub><mo>-</mo><msub><mi>arg</mi><mn>1</mn></msub></math></dd>
+<dt>Dot3Rgba,Dot3Rgba</dt>
+<dd>dot3バンプマッピングを実現するときに用いるようです</dd>
+<dd>計算式:<math xmlns="http://www.w3.org/1998/Math/MathML"><mi>value</mi><mo>=</mo><mn>4</mn><mo>&InvisibleTimes;</mo><mfenced><mrow><msub><mi>arg</mi><mn>0</mn></msub><mo>-</mo><mn>0.5</mn></mrow></mfenced><mo>&sdot;</mo><mfenced><mrow><msub><mi>arg</mi><mn>1</mn></msub><mo>-</mo><mn>0.5</mn></mrow></mfenced></math></dd>
+</dl>
+<p>Source?RgbとSource?Alphaで使われるTextureEnvModeSourceを以下に示します。</p>
+<dl class="enums">
+<dt>Texture</dt>
+<dd>今のUnitのテクスチャの色</dd>
+<dt>Texture?</dt>
+<dd>Unit?のテクスチャの色</dd>
+<dt>Constant</dt>
+<dd>EnvColorで設定した色</dd>
+<dt>PrimaryColor</dt>
+<dd>ポリゴンの色</dd>
+<dt>Previous</dt>
+<dd>前の段階で合成された色</dd>
+</dl>
+<p>Operand?RgbとOperand?Alphaで使われる、TextureEnvModeOperandRgbとTextureEnvModeOperandAlpha(※付)を以下に示します。</p>
+<dl class="enums">
+<dt>SrcColor</dt>
+<dd>RGBをそのまま使う</dd>
+<dt>OneMinusSrcColor</dt>
+<dd>RGBを1から引いて使う(反転)</dd>
+<dt>SrcAlpha※</dt>
+<dd>α値をそのまま使う</dd>
+<dt>OneMinusSrcAlpha※</dt>
+<dd>α値を1から引いて使う(反転)</dd>
+</dl>
+</div>

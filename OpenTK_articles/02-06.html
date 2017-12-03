@@ -1,0 +1,98 @@
+<h3>テクスチャを何枚も貼る</h3>
+<div class="segment">
+<p>今までは、一枚のポリゴンには一枚のテクスチャを貼っていました。しかし、実際には複数枚貼る(マッピングを行う)こともできます。</p>
+<p>一枚のポリゴンに複数のテクスチャを貼る技法をマルチテクスチャと呼びます。</p>
+<p>今回はこれらの画像を重ねて表示させます。</p><p align="center"><img src="OpenTK_misc/02-06_01.png" width="240px" height="240px" alt="Texture1"><img src="OpenTK_misc/02-06_02.png" width="240px" height="240px" alt="Texture2"><img src="OpenTK_misc/02-06_03.png" width="240px" height="240px" alt="Texture3"></p>
+</div>
+
+<h3>マルチテクスチャは重要！</h3>
+<div class="segment">
+<p align="center"><img src="OpenTK_misc/02-06_04.png" width="800px" height="600px" alt="MultiTexture"><br />例だけ見れば、一枚のテクスチャが貼ってあるように見えますが…</p>
+<p><a href="https://github.com/occar421/region_OpenTK/tree/master/02-06" target="_blank">ソースコード</a>は、テクスチャを扱う部分が大きく変わりました。</p>
+</div>
+
+<div class="segment">
+<p>※コードは明示しませんが、int型の配列(3個)である変数texturesを用意しています。</p>
+<pre class="brush: c#; first-line:133; highlight:[134]" title="02-06_main.cs:OnLoad関数内のテクスチャ読み込み部">
+			//テクスチャ用バッファの生成
+			GL.GenTextures(textures.Length, textures);
+
+			for (int i = 0; i < textures.Length; i++)
+			{
+				//テクスチャ用バッファのひもづけ
+				GL.BindTexture(TextureTarget.Texture2D, textures[i]);
+
+				//テクスチャの設定
+				GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+				GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
+
+				//picture.pngの読み込み
+				Bitmap file = new Bitmap("02-06_picture[" + i + "].png");
+
+				//png画像の反転を直す
+				file.RotateFlip(RotateFlipType.RotateNoneFlipY);
+
+				//データ読み込み
+				BitmapData data = file.LockBits(new Rectangle(0, 0, file.Width, file.Height), ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+
+				//テクスチャ用バッファに色情報を流し込む
+				GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, data.Width, data.Height, 0, OpenTK.Graphics.OpenGL.PixelFormat.Bgra, PixelType.UnsignedByte, data.Scan0);
+			}
+</pre>
+<p>複数枚のテクスチャ用バッファを同時に確保する場合は、GenTexturesを使います。</p>
+<p>また、ひもづけ毎にテクスチャの設定(TexParameterなど)を行う必要があります。</p>
+<pre class="brush: c#; first-line:158; highlight:[159, 164, 169, 175]" title="02-06_main.cs:OnLoad関数内のテクスチャユニット設定部">
+			//各テクスチャユニットの設定
+			GL.ActiveTexture(TextureUnit.Texture0);
+			GL.BindTexture(TextureTarget.Texture2D, textures[0]);
+			GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.TextureEnvMode, (int)TextureEnvMode.Decal);
+			GL.Enable(EnableCap.Texture2D);
+
+			GL.ActiveTexture(TextureUnit.Texture1);
+			GL.BindTexture(TextureTarget.Texture2D, textures[1]);
+			GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.TextureEnvMode, (int)TextureEnvMode.Decal);
+			GL.Enable(EnableCap.Texture2D);
+
+			GL.ActiveTexture(TextureUnit.Texture2);
+			GL.BindTexture(TextureTarget.Texture2D, textures[2]);
+			GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.TextureEnvMode, (int)TextureEnvMode.Decal);
+			GL.Enable(EnableCap.Texture2D);
+
+			//テクスチャユニットをデフォルトのものに設定
+			GL.ActiveTexture(TextureUnit.Texture0);
+</pre>
+<p>テクスチャを一枚だけ使う場合は、ひもづけをするだけで終わっていました。しかし、マルチテクスチャの場合はテクスチャユニットというものを別に設定しなければなりません。</p>
+<p>テクスチャユニットの設定手順は、ActiveTextureでユニットを選択し、テクスチャ用バッファをひも付けし、各種設定というものです。TexEnvだけではなくEnableまでユニット毎に分かれているので、注意する必要があります。Enableをコメントアウトして実行してみればよくわかるかと思います。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:261; highlight:[265, 266, 267, 270, 271, 272, 275, 276, 277, 280, 281, 282]" title="02-06_main.cs:OnRenderFrame関数の一部">
+			//メインのポリゴン表示
+			GL.Color4(Color4.White);
+			GL.Begin(BeginMode.Quads);
+
+			GL.MultiTexCoord2(TextureUnit.Texture0, 1.0, 1.0);
+			GL.MultiTexCoord2(TextureUnit.Texture1, 1.0, 1.0);
+			GL.MultiTexCoord2(TextureUnit.Texture2, 1.0, 1.0);
+			GL.Vertex3(1, 1, 0);
+
+			GL.MultiTexCoord2(TextureUnit.Texture0, 0.0, 1.0);
+			GL.MultiTexCoord2(TextureUnit.Texture1, 0.0, 1.0);
+			GL.MultiTexCoord2(TextureUnit.Texture2, 0.0, 1.0);
+			GL.Vertex3(-1, 1, 0);
+			
+			GL.MultiTexCoord2(TextureUnit.Texture0, 0.0, 0.0);
+			GL.MultiTexCoord2(TextureUnit.Texture1, 0.0, 0.0);
+			GL.MultiTexCoord2(TextureUnit.Texture2, 0.0, 0.0);
+			GL.Vertex3(-1, -1, 0);
+			
+			GL.MultiTexCoord2(TextureUnit.Texture0, 1.0, 0.0);
+			GL.MultiTexCoord2(TextureUnit.Texture1, 1.0, 0.0);
+			GL.MultiTexCoord2(TextureUnit.Texture2, 1.0, 0.0);
+			GL.Vertex3(1, -1, 0);
+
+			GL.End();
+</pre>
+<p>テクスチャを一枚だけ使う場合はTexCoord?を使っていましたが、マルチテクスチャの場合はMultiTexCoord?を使います。</p>
+<p>MultiCoord?は、TexCoord?にテクスチャユニットを指定する引数を追加したものだと考えられます。ちなみに、テクスチャユニットのデフォルトがTexture0ということで、Texture0に対する指定はTexCoord?で指定できます。(やるべきではありませんが…)</p>
+</div>

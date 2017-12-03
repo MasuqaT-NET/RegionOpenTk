@@ -1,0 +1,280 @@
+<h3>ライトもいろいろ</h3>
+<div class="segment">
+<p>以前のLighting[1]では平行光源を使いましたが、今回は点光源とスポットライトを使います。</p>
+<p>理科の光の屈折の例えで言うと、平行光源が太陽の光なのに対し、点光源は豆電球の光です。</p>
+<ul>
+	<li><dl>
+		<dt>点光源</dt>
+		<dd>平行光源の「場所」情報が光の向きだったのに対し、点光源の「場所」情報は光を発する場所です。点光源には減衰率を設定することができ、OpenGLの固定機能ではモデル表面のある点での光の強さは<math xmlns="http://www.w3.org/1998/Math/MathML"><mfrac><mn>1</mn><mrow><mi>a</mi><mo>+</mo><mi>b</mi><mo>&InvisibleTimes;</mo><mi>x</mi><mo>+</mo><mi>c</mi><mo>&InvisibleTimes;</mo><msup><mi>x</mi><mn>2</mn></msup></mrow></mfrac></math>(x:光源からの距離)で計算されます。この定数abcの値を各自が設定できるようになっています。</dd>
+	</dl></li>
+	<li><dl>
+		<dt>スポットライト</dt>
+		<dd>スポットライトは点光源を発展させたものです。スポットライトには点光源の設定に加え、光を発する向きの情報、光の角度、光の強さの分布を設定します。</dd>
+	</dl></li>
+</ul>
+</div>
+
+<h3>クラスを定義してコードをきれいに</h3>
+<div class="segment">
+<p>光源を追加させるだけでは面白くないので、モデルを1つ扱うクラスを定義して、VBOやVAOなどを意識せず描画するというようなことをやってみます。</p>
+<p>今回はモデルとクラスが1対1になっていますが、ちょっとコード弄るだけで、同じモデルが簡単に追加できます。</p>
+<p>それらはある基底クラスから派生させているので、すべてのモデルクラスを配列に格納してfor文ですべてを動かすなんてこともできると思います多分。</p>
+</div>
+
+<h3>点光源はきれい スポットライトは…</h3>
+<div class="segment">
+<p align="center"><img src="OpenTK_misc/01-08_01.png" width="800px" height="600px" alt="PointLight"><br />点光源</p>
+<p align="center"><img src="OpenTK_misc/01-08_02.png" width="800px" height="600px" alt="SpotLight"><br />スポットライト</p>
+<p><a href="https://github.com/occar421/region_OpenTK/tree/master/01-08" target="_blank">ソースコード</a>は、クラス関係の処理が多くなってしまいましたが、本処理はすっきりしたと思います。</p>
+<p>このプログラムはデフォルトでは点光源でライティングしますが、Lキーを押している間はスポットライトでのライティングになります。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:38;" title="01-08_main.cs:フィールド">
+		//0:点光源 1:スポットライト
+		Color4 lightAmbient;			//光源の環境光成分
+		Color4 lightDiffuse;			//光源の拡散光成分
+		Color4 lightSpecular;			//光源の鏡面光成分
+		float lightConstantAttenuation;	//光源の一定減衰率
+		float lightLinerAttenuation;	//光源の線形減衰率
+		float lightQuadraticAttenuation;//光源の二次減衰率
+
+		Vector4 light0Position;			//点光源の位置
+
+		Vector4 light1Position;			//スポットライトの位置
+		Vector4 light1Direction;		//スポットライトの方向
+		float light1Cutoff;				//スポットライトの放射角度
+		float light1Exponent;			//スポットライトの輝度分布
+
+		Color4 materialAmbient;			//材質の環境光成分
+		//Color4 materialDiffuse;		//材質の拡散光成分
+		Color4 materialSpecular;		//材質の鏡面光成分
+		float materialShininess;		//材質の鏡面光の鋭さ
+
+		Model torus, sphere, plate;
+
+		float angle;
+		bool isPointLight;
+</pre>
+<p>光源のパラメータで共通のものはまとめました。</p>
+<p>torus、sphere、plateは、実際にはModelクラスの派生クラスが入ります。それぞれトーラス、球、地面を扱います。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:177; highlight:[204,205,206];" title="01-08_main.cs:OnLoad関数">
+		//ウィンドウの起動時に実行される。
+		protected override void OnLoad(EventArgs e)
+		{
+			base.OnLoad(e);
+
+			GL.ClearColor(Color4.Black);
+			GL.Enable(EnableCap.DepthTest);
+
+			//点の大きさ
+			GL.PointSize(10.0f);
+
+			//裏面削除、反時計回りが表でカリング
+			GL.Enable(EnableCap.CullFace);
+			GL.CullFace(CullFaceMode.Back);
+			GL.FrontFace(FrontFaceDirection.Ccw);
+
+			//ライティングON Light0を有効化
+			GL.Enable(EnableCap.Lighting);
+			GL.Enable(EnableCap.Light0);
+
+			//法線の正規化
+			GL.Enable(EnableCap.Normalize);
+
+			//色を材質に変換
+			GL.Enable(EnableCap.ColorMaterial);
+			GL.ColorMaterial(MaterialFace.Front, ColorMaterialParameter.Diffuse);
+
+			torus.CreateBuffers();
+			sphere.CreateBuffers();
+			plate.CreateBuffers();
+		}
+</pre>
+<p>なんということでしょう。クラスを利用したことにより、あんなに長くて見にくかったコードが、モデルにつき1行になってしまいました。</p>
+<p>処理をクラスに含めることで、見やすくなる、メンテナンスが楽という利点があります。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:209; highlight:[214,215,216];" title="01-08_main.cs:OnUnload関数">
+		//ウィンドウの終了時に実行される。
+		protected override void OnUnload(EventArgs e)
+		{
+			base.OnUnload(e);
+
+			torus.DeleteBuffers();
+			sphere.DeleteBuffers();
+			plate.DeleteBuffers();
+
+			GL.DisableClientState(ArrayCap.VertexArray);	//VertexArrayを無効化
+			GL.DisableClientState(ArrayCap.NormalArray);	//NormalArrayを無効化
+			GL.DisableClientState(ArrayCap.ColorArray);		//ColorArrayを無効化
+		}
+</pre>
+<p>こちらはもともと単純だったので、少しの効果しかありません。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:311;" title="01-08_main.cs:OnRenderFrame関数前半一部">
+			//ライトの指定
+			if (isPointLight)
+			{
+				GL.Light(LightName.Light0, LightParameter.Position, light0Position);
+				GL.Light(LightName.Light0, LightParameter.Ambient, lightAmbient);
+				GL.Light(LightName.Light0, LightParameter.Diffuse, lightDiffuse);
+				GL.Light(LightName.Light0, LightParameter.Specular, lightSpecular);
+				GL.Light(LightName.Light0, LightParameter.ConstantAttenuation, lightConstantAttenuation);
+				GL.Light(LightName.Light0, LightParameter.LinearAttenuation, lightLinerAttenuation);
+				GL.Light(LightName.Light0, LightParameter.QuadraticAttenuation, lightQuadraticAttenuation);
+			}
+			else
+			{
+				GL.Light(LightName.Light1, LightParameter.Position, light1Position);
+				GL.Light(LightName.Light1, LightParameter.Ambient, lightAmbient);
+				GL.Light(LightName.Light1, LightParameter.Diffuse, lightDiffuse);
+				GL.Light(LightName.Light1, LightParameter.Specular, lightSpecular);
+				GL.Light(LightName.Light1, LightParameter.ConstantAttenuation, lightConstantAttenuation);
+				GL.Light(LightName.Light1, LightParameter.LinearAttenuation, lightLinerAttenuation);
+				GL.Light(LightName.Light1, LightParameter.QuadraticAttenuation, lightQuadraticAttenuation);
+				GL.Light(LightName.Light1, LightParameter.SpotDirection, light1Direction);
+				GL.Light(LightName.Light1, LightParameter.SpotCutoff, light1Cutoff);
+				GL.Light(LightName.Light1, LightParameter.SpotExponent, light1Exponent);
+			}
+</pre>
+<p>スポットライトのパラメータがやけに多くなっています。</p>
+<p>ここで光源のパラメータをまとめてみます。</p>
+<dl class="enums">
+<dt>Position</dt>
+<dd>位置(または方向)</dd>
+<dt>Ambient</dt>
+<dd>環境光成分</dd>
+<dt>Diffuse</dt>
+<dd>拡散光</dd>
+<dt>Specular</dt>
+<dd>鏡面光</dd>
+<dt>ConstantAttenuation</dt>
+<dd>距離によらない減衰</dd>
+<dt>LinearAttenuation</dt>
+<dd>距離に比例する減衰</dd>
+<dt>QuadraticAttenuation</dt>
+<dd>距離の2乗に比例する減衰</dd>
+<dt>SpotDirection</dt>
+<dd>スポットライトの方向</dd>
+<dt>SpotCutoff</dt>
+<dd>スポットライトの発光する角度</dd>
+<dt>SpotExponent</dt>
+<dd>スポットライトの強さの分布</dd>
+</dl>
+<p>パラメータによって、きれいに見えたり変に見えたりするので注意が必要です。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:345;" title="01-08_main.cs:OnUnload関数後半一部">
+			//モデル描画
+			GL.PushMatrix();
+			GL.Translate(-1.5f, 0.0f, 0.0f);
+			GL.Rotate(angle, Vector3.UnitZ);
+
+			torus.Draw();
+
+			GL.PopMatrix();
+			GL.PushMatrix();
+			GL.Translate(1.5f, 0.0f, 0.0f);
+			GL.Rotate(angle, Vector3.UnitY);
+
+			sphere.Draw();
+
+			GL.PopMatrix();
+
+			plate.Draw();
+</pre>
+<p>Modelの派生クラスはDrawメソッドで、名前の通り描画します。ここでもスッキリしています。</p>
+</div>
+
+<h3>補足:作成した抽象クラス</h3>
+<div class="segment">
+<pre class="brush: c#; first-line:28; highlight:[44,46,88,95];" title="01-08_classes.cs:モデル用抽象クラスの一部">
+	//各モデルの骨組み
+	abstract class Model
+	{
+		protected Vertex[] vertices;		//頂点
+		protected int[] indices;			//頂点の指標
+		protected int vbo;					//VBOのバッファの識別番号を保持
+		protected int ibo;					//IBOのバッファの識別番号を保持
+		protected int vao;					//VAOの識別番号を保持
+
+		protected Model()
+		{
+			this.vbo = 0;
+			this.ibo = 0;
+			this.vao = 0;
+		}
+
+		public abstract void Initialize();
+
+		public void CreateBuffers()
+		{
+			//VBOを1コ生成し、頂点データを送り込む
+			GL.GenBuffers(1, out vbo);
+			GL.BindBuffer(BufferTarget.ArrayBuffer, vbo);
+			int vertexArray1Size = vertices.Length * Vertex.Size;
+			GL.BufferData&lt;Vertex&gt;(BufferTarget.ArrayBuffer, new IntPtr(vertexArray1Size), vertices, BufferUsageHint.StaticDraw);
+			GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
+
+			//IBOを1コ生成し、インデックスデータを送り込む
+			GL.GenBuffers(1, out ibo);
+			GL.BindBuffer(BufferTarget.ElementArrayBuffer, ibo);
+			int indexArray1Size = indices.Length * sizeof(int);
+			GL.BufferData(BufferTarget.ElementArrayBuffer, new IntPtr(indexArray1Size), indices, BufferUsageHint.StaticDraw);
+			GL.BindBuffer(BufferTarget.ElementArrayBuffer, 0);
+
+			//VAOを1コ作成
+			GL.GenVertexArrays(1, out vao);
+
+			GL.BindVertexArray(vao);
+
+			//各Arrayを有効化
+			GL.EnableClientState(ArrayCap.VertexArray);
+			GL.EnableClientState(ArrayCap.NormalArray);
+			GL.EnableClientState(ArrayCap.ColorArray);
+
+			GL.BindBuffer(BufferTarget.ArrayBuffer, vbo);
+
+			//頂点の位置情報の場所を指定
+			GL.VertexPointer(3, VertexPointerType.Float, Vertex.Size, 0);
+
+			//頂点の法線情報の場所を指定
+			GL.NormalPointer(NormalPointerType.Float, Vertex.Size, Vector3.SizeInBytes);
+
+			//頂点の色情報の場所を指定
+			GL.ColorPointer(4, ColorPointerType.Float, Vertex.Size, Vector3.SizeInBytes * 2);
+
+			GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
+
+			GL.BindVertexArray(0);
+		}
+
+		public void DeleteBuffers()
+		{
+			GL.DeleteBuffers(1, ref vbo);			//バッファを1コ削除
+			GL.DeleteBuffers(1, ref ibo);			//バッファを1コ削除
+			GL.DeleteVertexArrays(1, ref vao);		//VAOを1コ削除
+		}
+
+		public void Draw()
+		{
+			GL.BindVertexArray(vao);
+			GL.BindBuffer(BufferTarget.ElementArrayBuffer, ibo);
+			GL.DrawElements(BeginMode.Quads, indices.Length, DrawElementsType.UnsignedInt, 0);
+			GL.BindVertexArray(0);
+		}
+		
+		/* 中略 */
+	}
+</pre>
+<p>クラスの中はごちゃごちゃしていますが、うまくカプセル化できていると思います。</p>
+<p>派生クラスでInitializeメソッドをオーバーライドさせることで、それぞれ違うモデルを扱わせることができます。</p>
+</div>

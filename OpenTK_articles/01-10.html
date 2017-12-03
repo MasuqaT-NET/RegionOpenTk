@@ -1,0 +1,107 @@
+<h3>フォグの効果-霧の表現だけではない</h3>
+<div class="segment">
+<p>今回は霧のエフェクトを扱います。下の写真をご覧ください。</p>
+<p align="center"><img src="OpenTK_misc/01-10_01.jpg" width="640px" height="431px" alt="FoggyMountain" title="by「フリー写真素材 :: Free.Stocker」"><br />遠い山は霧の影響を強く受けるので色が白っぽい</p>
+<p>ご覧の通り、霧で空の色に近づいている効果で山の距離感がよく出ていると思います。</p>
+<p>フォグは3Dゲームの中に自然の距離感を与えてくれます。ただ、距離に応じて濃くなるため、煙などの表現には向かないでしょう。</p>
+</div>
+
+<h3>フォグの数式</h3>
+<div class="segment">
+<p>現実世界の霧は、遠くにあるものを白っぽくみせる効果があります。OpenGLでは、距離によるフォグの効果の変化を表す数式がいくつか定義されており、その中から一つ選ぶことになります。</p>
+<dl class="enums">
+<dt>Linear</dt>
+<dd><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>f</mi><mo>=</mo><mfrac><mrow><msub><mi>d</mi><mi>end</mi></msub><mo>-</mo><mfenced open="|" close="|"><mi>z</mi></mfenced></mrow><mrow><msub><mi>d</mi><mi>end</mi></msub><mo>-</mo><msub><mi>d</mi><mi>start</mi></msub></mrow></mfrac></math></dd>
+<dt>Exp</dt>
+<dd><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>f</mi><mo>=</mo><msup><mi>&ExponentialE;</mi><mrow><mo>-</mo><mi>density</mi><mo>&times;</mo><mfenced open="|" close="|"><mi>z</mi></mfenced></mrow></msup></math></dd>
+<dt>Exp2</dt>
+<dd><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>f</mi><mo>=</mo><msup><mi>&ExponentialE;</mi><mrow><mo>-</mo><msup><mfenced><mrow><mi>density</mi><mo>&times;</mo><mi>z</mi></mrow></mfenced><mn>2</mn></msup></mrow></msup></math></dd>
+</dl>
+<p>この数式のfは"percent of original color"で、0.0～1.0の値を取るようにclampされます。fが0.0に近いほど色が霞んでいきます。</p>
+</div>
+
+<h3>遠いものを描画するときに重宝</h3>
+<div class="segment">
+<p align="center"><img src="OpenTK_misc/01-10_02.png" width="800px" height="600px" alt="Fog"><br />赤い球が霞んでいる</p>
+<p><a href="https://github.com/occar421/region_OpenTK/tree/master/01-10" target="_blank">ソースコード</a>は、フォグのパラメータの指定以外に見どころはありません。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:157; highlight:[182,183,185];" title="01-10_main.cs:OnLoad関数">
+		//ウィンドウの起動時に実行される。
+		protected override void OnLoad(EventArgs e)
+		{
+			base.OnLoad(e);
+
+			GL.ClearColor(Color4.Gray);
+			GL.Enable(EnableCap.DepthTest);
+
+			//裏面削除、反時計回りが表でカリング
+			GL.Enable(EnableCap.CullFace);
+			GL.CullFace(CullFaceMode.Back);
+			GL.FrontFace(FrontFaceDirection.Ccw);
+
+			//ライティングON Light0を有効化
+			GL.Enable(EnableCap.Lighting);
+			GL.Enable(EnableCap.Light0);
+
+			//法線の正規化
+			GL.Enable(EnableCap.Normalize);
+
+			//色を材質に変換
+			GL.Enable(EnableCap.ColorMaterial);
+			GL.ColorMaterial(MaterialFace.Front, ColorMaterialParameter.Diffuse);
+
+			//フォグの設定
+			GL.Enable(EnableCap.Fog);
+			GL.Fog(FogParameter.FogColor, fogColor);
+			GL.Fog(FogParameter.FogMode, (int)FogMode.Linear);
+			GL.Hint(HintTarget.FogHint, HintMode.Nicest);
+			GL.Fog(FogParameter.FogStart, 3.0f);
+			GL.Fog(FogParameter.FogEnd, 30.0f);
+
+			torus.CreateBuffers();
+			sphere.CreateBuffers();
+			plate.CreateBuffers();
+		}
+</pre>
+<p>まずは起動時に、フォグを許可(182行目)します。また、フォグの色を指定(183行目)しますが、これは背景の色と同じにするのが無難でしょう。</p>
+<p>さらに、フォグの計算の精度を指定することができます。今回は最高品質としました。(185行目)</p>
+<p>他のパラメータの指定は次のコードと共に載せます。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:229; highlight:[234,235,236,244,245,253,254];" title="01-10_main.cs:OnUpdateFrame関数の一部">
+			//ZキーでFogMode.Linear
+			if (Keyboard[Key.Z])
+			{
+				this.Title = "1-10:Fog(FogMode.Linear)";
+
+				GL.Fog(FogParameter.FogMode, (int)FogMode.Linear);
+				GL.Fog(FogParameter.FogStart, 3.0f);
+				GL.Fog(FogParameter.FogEnd, 30.0f);
+			}
+
+			//XキーでFogMode.Exp
+			if (Keyboard[Key.X])
+			{
+				this.Title = "1-10:Fog(FogMode.Exp)";
+
+				GL.Fog(FogParameter.FogMode, (int)FogMode.Exp);
+				GL.Fog(FogParameter.FogDensity, 0.1f);
+			}
+
+			//CキーでFogMode.Exp2
+			if (Keyboard[Key.C])
+			{
+				this.Title = "1-10:Fog(FogMode.Exp2)";
+
+				GL.Fog(FogParameter.FogMode, (int)FogMode.Exp2);
+				GL.Fog(FogParameter.FogDensity, 0.1f);
+			}
+</pre>
+<p>Linearの計算式で霧を描画する場合、モードの指定と、どの距離から霧がかかり始めるか(フォグの始まり)、どの距離になると霧で物体が見えなくなるか(フォグの終わり)というパラメータの指定が必要になります。そのため、234行目でモードの指定、235行目でフォグの始まる距離の指定、236行目でフォグの終わる距離の指定をしています。</p>
+<p>ExpやExp2の計算式で霧を描画する場合、モードの指定と、フォグの濃度のパラメータの指定が必要になります。そのため、244行目や253行目でモードの指定、245行目や254行目で濃度の指定をしています。</p>
+<p>それぞれの計算式によるフォグの効果は下のようになります。</p>
+<p align="center"><img src="OpenTK_misc/01-10_03.png" alt="Fog1" height="300px" width="400px"><img src="OpenTK_misc/01-10_04.png" alt="Fog2" height="300px" width="400px"><img src="OpenTK_misc/01-10_05.png" alt="Fog3" height="300px" width="400px"></p>
+</div>

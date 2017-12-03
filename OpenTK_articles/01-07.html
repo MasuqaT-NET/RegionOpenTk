@@ -1,0 +1,115 @@
+<h3>VAOという概念</h3>
+<div class="segment">
+<p>VAOとは、"Vertex Array Object"の略です。VBOと名前が似ていますが、役割は全く異なります。</p>
+<p>VBOを使った描画では、描画時に場所の指定などをする処理が入るため、どうしても描画時の記述が多くなってしまいます。</p>
+<p>その一連の処理をカプセル化するのが、VAOの使い方の一つです。頂点の情報に識別番号を付けて管理できるようにもなりますが、今回はそれは使いません。</p>
+<p>VAOはOpenGL 3.0から標準機能になりましたが、同時にシェーダーを自作しないやり方は拡張機能となってしまったので、今回のやり方は来るシェーダーへのつなぎという側面が強いです。</p>
+</div>
+
+<h3>VAOの使い方</h3>
+<div class="segment">
+<p>VAOは名前の通りバッファではありません。そのため、VBOやIBOとは関数名や使い方が少し違います。</p>
+<p>VAOを扱う関数の"例"を以下に示します。</p>
+<dl class="functions">
+	<dt>GL.GenVertexArrays(int n, out int arrays)</dt>
+	<dd>Generate vertex array object names.</dd>
+	<dt>GL.BindVertexArray(int array)</dt>
+	<dd>Bind a vertex array object.</dd>
+	<dt>GL.DeleteVertexArrays(int n, ref int arrays)</dt>
+	<dd>Delete vertex array objects.</dd>
+</dl>
+<p>上から簡単に、VAOの作成、ひも付け、削除…です。</p>
+<p>VAOのひも付けがされている中でVBOの設定をすると、その情報がVAOに記憶されるため、描画時にVAOをひも付けするだけでVBOの描画前の設定を全部やってくれます。</p>
+<p>注意が必要なのは、IBOの全く関係しないというところです。IBOも使う場合は、VAOと一緒にひも付けする必要があります。</p>
+</div>
+
+<h3>描画ごとの処理が簡単に見える</h3>
+<div class="segment">
+<p align="center"><img src="OpenTK_misc/01-07_01.png" width="800px" height="600px" alt="VAO"><br />トーラスと球を描画</p>
+<p><a href="https://github.com/occar421/region_OpenTK/tree/master/01-07" target="_blank">ソースコード</a>は、OnLoad関数の処理が多くなってしまいましたが、OnRenderFrame関数の処理が簡単になっています。この書き方だと、素直にクラスを作れという話ですが、描画ごとの処理が簡単になることがよくわかると思います。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:235; highlight:[236,239,259];" title="01-07_main.cs:OnLoad関数の一部">
+			//VAOを1コ作成
+			GL.GenVertexArrays(1, out vao1);
+
+			//ここからVAO1
+			GL.BindVertexArray(vao1);
+
+			//各Arrayを有効化
+			GL.EnableClientState(ArrayCap.VertexArray);
+			GL.EnableClientState(ArrayCap.NormalArray);
+			GL.EnableClientState(ArrayCap.ColorArray);
+
+			GL.BindBuffer(BufferTarget.ArrayBuffer, vbo1);
+
+			//頂点の位置情報の場所を指定
+			GL.VertexPointer(3, VertexPointerType.Float, Vertex.Size, 0);
+
+			//頂点の法線情報の場所を指定
+			GL.NormalPointer(NormalPointerType.Float, Vertex.Size, Vector3.SizeInBytes);
+
+			//頂点の色情報の場所を指定
+			GL.ColorPointer(4, ColorPointerType.Float, Vertex.Size, Vector3.SizeInBytes * 2);
+
+			GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
+
+			GL.BindVertexArray(0);
+			//VAO1ここまで
+</pre>
+<p>このコードの前に、VBOを作成してデータを送り込む処理が必要となります。</p>
+<p>236行目でVAOを作成し、239行目でVAOをひも付けしています。259行目のように、0を指定することでひも付けを解除できます。</p>
+<p>ひも付けの中で、GL.EnableClientStateを使ったりGL.VertexPointerなどを使ったりしています。ここでGL.EnableClientStateを使わなければならないのは、OpenGLの設計でサーバー側とクライアント側に分かれているということに関係しているようです。</p>
+<p>実際、ひも付けの中でGL.EnableClientStateを使わない場合、何も描画してくれません。</p>
+<p>今回は2つ物体を描画していますが、このコードは1つ分なのでもう1つの物体についても同様に処理を行います。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:296; highlight:[298,302];" title="01-07_main.cs:OnUnLoad関数の一部">
+			GL.DeleteBuffers(1, ref vbo1);			//バッファを1コ削除
+			GL.DeleteBuffers(1, ref ibo1);			//バッファを1コ削除
+			GL.DeleteVertexArrays(1, ref vao1);		//VAOを1コ削除
+
+			GL.DeleteBuffers(1, ref vbo2);			//バッファを1コ削除
+			GL.DeleteBuffers(1, ref ibo2);			//バッファを1コ削除
+			GL.DeleteVertexArrays(1, ref vao2);		//VAOを1コ削除
+
+			GL.DisableClientState(ArrayCap.VertexArray);	//VertexArrayを無効化
+			GL.DisableClientState(ArrayCap.NormalArray);	//NormalArrayを無効化
+			GL.DisableClientState(ArrayCap.ColorArray);		//ColorArrayを無効化
+</pre>
+<p>GL.DeleteVertexArraysでVAOもしっかり削除します。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:395; highlight:[401,409,413]" title="01-06_main.cs:OnRenderFrame関数の一部">
+			GL.MatrixMode(MatrixMode.Modelview);
+
+			GL.PushMatrix();
+			GL.Translate(-1.5f, 0.0f, 0.0f);
+
+			//1を描画
+			GL.BindVertexArray(vao1);
+			GL.BindBuffer(BufferTarget.ElementArrayBuffer, ibo1);
+			GL.DrawElements(BeginMode.Quads, indices1.Length, DrawElementsType.UnsignedInt, 0);
+
+			GL.PopMatrix();
+			GL.Translate(1.5f, 0.0f, 0.0f);
+
+			//2を描画
+			GL.BindVertexArray(vao2);
+			GL.BindBuffer(BufferTarget.ElementArrayBuffer, ibo2);
+			GL.DrawElements(BeginMode.Quads, indices2.Length, DrawElementsType.UnsignedInt, 0);
+
+			GL.BindVertexArray(0);
+</pre>
+<p>さて、描画処理ですが、1つの物体の表示は3行の処理で可能になっています。</p>
+</div>
+
+<h3>VAOとシェーダーとのつながり</h3>
+<div class="segment">
+<p>今回のプログラムは見栄えもパフォーマンスもよくなるというものではなく、OpenGLの仕様変更の関係で、このままの処理で使うことはまれです。</p>
+<p>VAOはプログラマブルシェーダーで用いる場合がほとんどです。シェーダー(GPU側)が受ける情報と、プログラム(CPU側)が送る情報をリンクさせるのに使います。</p>
+<p>VAOの生成やひも付けなどは一緒ですので、ぜひ覚えておいてください。</p>
+</div>

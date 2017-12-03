@@ -1,0 +1,135 @@
+<h3>固定機能のシェーダとプログラマブルシェーダ</h3>
+<div class="segment">
+<p>ここからは、シェーダという物を自作していくことになります。</p>
+<p>今まで表示していたものは、"固定機能"としてあらかじめ用意されていたシェーダを使って描画していました。</p>
+<p>このシェーダを使うのは簡単(何もしない)ですが、選択の自由がほとんど無く、最近のOpenGLで使うことはほぼありません。</p>
+<p>自作のシェーダは、登録の処理やシェーダの記述など、面倒なことは増えてしまう代わりに表現の幅が大きく広がります。</p>
+<p>ここでは、プログラマブルシェーダの作り方や使用法を紹介します。</p>
+</div>
+
+<h3>手順</h3>
+<div class="segment">
+<p>まず、プログラマブルシェーダを作るために、OpenGLではGLSLという言語でシェーダを記述していきます。GLSLはC言語に似た言語で、OpenTKでC#を使っている方なら問題なく使えるでしょう。</p>
+<p>OpenTKでの処理としては、まず始めに各シェーダのオブジェクトを生成します。そこにシェーダのコードを指定して、コンパイルします。</p>
+<p>次にシェーダプログラムのオブジェクトを生成します。このプログラムというものは、複数のシェーダオブジェクトを束ねるものと考えるといいと思います。そして、そこにコンパイルしたシェーダを登録し、OpenGL本体のプログラムにこれを登録します。</p>
+<p>このシェーダプログラムを実際に利用するときは、テクスチャバッファと同じように、このシェーダプログラムを使う、という宣言をします。</p>
+<ol>
+<li>シェーダコードをGLSLで記述</li>
+<li>(OpenTKで)シェーダオブジェクトを生成</li>
+<li>シェーダオブジェクトにコードを指定</li>
+<li>シェーダオブジェクトのコンパイル</li>
+<li>シェーダプログラムのオブジェクトを生成</li>
+<li>シェーダプログラムへのシェーダオブジェクトの登録</li>
+<li>OpenTKのプログラムへのシェーダプログラムへの登録</li>
+<li>シェーダプログラムの使用宣言</li>
+</ol>
+</div>
+
+<h3>この処理の流れはこれから重要</h3>
+<div class="segment">
+<p align="center"><img src="OpenTK_misc/03-01_01.png" width="800px" height="600px" alt="Programmable Shader"><br />赤い四角形を描画</p>
+<p><a href="https://github.com/occar421/region_OpenTK/tree/master/03-01" target="_blank">ソースコード</a>は、シェーダを使うための処理で長くなっています。</p>
+</div>
+
+<div class="segment">
+<p>まずは、今回使うシェーダを示します。</p>
+<pre class="brush: glsl;" title="03-01_shader.vert">
+void main(void)
+{
+    gl_Position = ftransform();
+}
+</pre>
+<pre class="brush: glsl;" title="03-01_shader.frag">
+void main(void)
+{
+    gl_FragColor = vec4(0.8, 0.1, 0.1, 1.0);
+}
+</pre>
+<p>上は頂点の情報に対する処理、下は面を構成するピクセルに対する処理ですが、詳細はここでは説明しません。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:132; highlight:[136, 141, 144, 153, 158, 161];" title="03-01_main.cs:OnLoad関数内のシェーダオブジェクトの処理部分">
+			#region Shader Compile and Link
+			int status;
+
+			//シェーダオブジェクト(バーテックス)を生成
+			vertexShader = GL.CreateShader(ShaderType.VertexShader);
+
+			using (var sr = new StreamReader("03-01_shader.vert"))
+			{
+				//バーテックスシェーダのコードを指定
+				GL.ShaderSource(vertexShader, sr.ReadToEnd());
+			}
+			//バーテックスシェーダをコンパイル
+			GL.CompileShader(vertexShader);
+			GL.GetShader(vertexShader, ShaderParameter.CompileStatus, out status);
+			//コンパイル結果をチェック
+			if (status == 0)
+			{
+				throw new ApplicationException(GL.GetShaderInfoLog(vertexShader));
+			}
+
+			//シェーダオブジェクト(フラグメント)を生成
+			fragmentShader = GL.CreateShader(ShaderType.FragmentShader);
+
+			using (var sr = new StreamReader("03-01_shader.frag"))
+			{
+				//フラグメントシェーダのコードを指定
+				GL.ShaderSource(fragmentShader, sr.ReadToEnd());
+			}
+			//フラグメントシェーダをコンパイル
+			GL.CompileShader(fragmentShader);
+			GL.GetShader(fragmentShader, ShaderParameter.CompileStatus, out status);
+			//コンパイル結果をチェック
+			if (status == 0)
+			{
+				throw new ApplicationException(GL.GetShaderInfoLog(fragmentShader));
+			}
+</pre>
+<p>上から順番に2から4までの処理をそれぞれ行っています。また、もしシェーダの記述にエラーがあれば例外を発生するようにしました。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:169; highlight:[170, 173, 174, 181, 191]" title="03-01_main.cs:OnLoad関数内のシェーダプログラムの処理部分">
+			//シェーダプログラムのオブジェクトを生成
+			shaderProgram = GL.CreateProgram();
+
+			//各シェーダオブジェクトをシェーダプログラムへ登録
+			GL.AttachShader(shaderProgram, vertexShader);
+			GL.AttachShader(shaderProgram, fragmentShader);
+
+			//不要になった各シェーダオブジェクトを削除
+			GL.DeleteShader(vertexShader);
+			GL.DeleteShader(fragmentShader);
+
+			//シェーダプログラムのリンク
+			GL.LinkProgram(shaderProgram);
+			GL.GetProgram(shaderProgram, ProgramParameter.LinkStatus, out status);
+			//シェーダプログラムのリンクのチェック
+			if (status == 0)
+			{
+				throw new ApplicationException(GL.GetProgramInfoLog(shaderProgram));
+			}
+			#endregion
+			
+			//シェーダプログラムを使用
+			GL.UseProgram(shaderProgram);
+</pre>
+<p>上から5から8までの処理をそれぞれ行っています。もし、シェーダプログラムのリンクにエラーがあれば例外を発生するようにしました。</p>
+<p>最後に、テクスチャと同じように、シェーダプログラムの使用を宣言しています。ここに0を指定すると、何も指定しないことになります。</p>
+<p>177行目と、178行目でシェーダオブジェクトを削除してしまっていますが、シェーダオブジェクトは一度プログラムに登録してしまえば、再度そのオブジェクトが使われることは無いので、さっさと消してしまっています。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:194; highlight:[199]" title="03-01_main.cs:OnUnload関数">
+		//ウィンドウの終了時に実行される。
+		protected override void OnUnload(EventArgs e)
+		{
+			base.OnUnload(e);
+
+			GL.DeleteProgram(shaderProgram);
+		}
+</pre>
+<p>プログラムを終了するときは、シェーダのプログラムを削除します。</p>
+</div>

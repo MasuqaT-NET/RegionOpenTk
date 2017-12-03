@@ -1,0 +1,68 @@
+{
+	"articles": [
+		[
+			"OpenTKについて",
+			"OpenTKのインストール",
+			"GameWindowを作る",
+			"WindowFormに組み込む",
+			"WPFに組み込む",
+			"IronPythonで使う",
+			"グラフィックスモード",
+			"ジョイスティックを使う"
+		],
+		[
+			"点と線の描画",
+			"マウスと視点の変更",
+			"効率よく描画-VBO[1]",
+			"光源と材質-Lighting[1]",
+			"複数の頂点属性-IBO/VBO[2]",
+			"動的にモデル変形-VBO[3]",
+			"VBOの処理をカプセル化-VAO",
+			"光源いろいろ-Lighting[2]",
+			"アルファブレンディング",
+			"フォグ(霧)",
+			"デプステスト＆アルファテスト",
+			"ステンシルテスト"
+		],
+		[
+			"テクスチャをポリゴンに貼る",
+			"テクスチャパラメータ",
+			"テクスチャのαブレンディング",
+			"テクスチャ読み込み＆切り抜き",
+			"テクスチャの合成",
+			"マルチテクスチャ",
+			"ミップマップ",
+			"TextureEnvMode.Combine",
+			"テクスチャの置き換え",
+			"テクスチャの行列演算",
+			"ボリュームテクスチャ",
+			"VBOとテクスチャ"
+		],
+		[
+			"自作のシェーダとは",
+			"GLSLの型",
+			"GLSLの関数"
+		]
+	],
+
+	"titles": [
+		{ "title": "OpenTKの基本・機能", "description": "OpenTK独自の機能を使うためには…" },
+		{ "title": "簡単な描画機能", "description": "ごく基本的な機能を使うためには…" },
+		{ "title": "テクスチャの基本", "description": "テクスチャを使うためには…" },
+		{ "title": "シェーダの基本", "description": "自作のシェーダを使うためには…" }
+	],
+	"links": [
+		{ "title": "The Open Toolkit Library | OpenTK", "url": "http://www.opentk.com/" },
+		{ "title": "OpenGL - The Industry Standard...", "url": "http://www.opengl.org/" },
+		{ "title": "床井研究室", "url": "http://marina.sys.wakayama-u.ac.jp/~tokoi/" },
+		{ "title": "WebGL 開発支援サイト wgld.org ", "url": "http://wgld.org/" },
+		{ "title": "OpenGLプログラミングメモ", "url": "http://www21.atwiki.jp/opengl/" },
+		{ "title": "OpenGL de プログラミング", "url": "http://wiki.livedoor.jp/mikk_ni3_92/" },
+		{ "title": "3Dグラフィックス・マニアックス", "url": "http://news.mynavi.jp/column/graphics/" }
+	],
+	"thanks": [
+		{ "title": "SyntaxHighlighter", "url": "http://alexgorbatchev.com/SyntaxHighlighter/" },
+		{ "title": "MathJax", "url": "http://www.mathjax.org/" },
+		{ "title": "WIRIS editor demo", "url": "http://www.wiris.com/editor/demo/en/mathml-latex.html" }
+	]
+}

@@ -1,0 +1,142 @@
+/**
+ * SyntaxHighlighter
+ * http://alexgorbatchev.com/SyntaxHighlighter
+ *
+ * SyntaxHighlighter is donationware. If you are using it, please donate.
+ * http://alexgorbatchev.com/SyntaxHighlighter/donate.html
+ *
+ * @version
+ * 3.0.83 (July 02 2010)
+ * 
+ * @copyright
+ * Copyright (C) 2004-2010 Alex Gorbatchev.
+ *
+ * @license
+ * Dual licensed under the MIT and GPL licenses.
+ */
+ 
+/* MasuqaT changed something. */
+
+.syntaxhighlighter {
+  background-color: #FFCC00 !important;
+}
+.syntaxhighlighter .line.alt1 {
+  background-color: #FFFFFF !important;
+}
+.syntaxhighlighter .line.alt2 {
+  background-color: #FFFFFF !important;
+}
+.syntaxhighlighter .line.highlighted.alt1, .syntaxhighlighter .line.highlighted.alt2 {
+  background-color: #F0F0F0 !important;
+}
+.syntaxhighlighter .line.highlighted.number {
+  color: black !important;
+}
+.syntaxhighlighter table caption {
+  color: black !important;
+}
+.syntaxhighlighter .gutter {
+  color: #2B91AF !important;
+}
+.syntaxhighlighter .gutter .line {
+  border-right: 1px solid #BFCDDB !important;
+}
+.syntaxhighlighter .gutter .line.highlighted {
+  background-color: #E0E0E0 !important;
+  color: #2B91AF !important;
+}
+.syntaxhighlighter.printing .line .content {
+  border: none !important;
+}
+.syntaxhighlighter.collapsed {
+  overflow: visible !important;
+}
+.syntaxhighlighter.collapsed .toolbar {
+  color: blue !important;
+  background: #F0F0F0 !important;
+  border: 3px solid #BFCDDB !important;
+}
+.syntaxhighlighter.collapsed .toolbar a {
+  color: blue !important;
+}
+.syntaxhighlighter.collapsed .toolbar a:hover {
+  color: red !important;
+}
+.syntaxhighlighter .toolbar {
+  color: white !important;
+  background: #6ce26c !important;
+  border: 0px !important;
+}
+.syntaxhighlighter .toolbar a {
+  color: white !important;
+}
+.syntaxhighlighter .toolbar a:hover {
+  color: black !important;
+}
+.syntaxhighlighter .plain, .syntaxhighlighter .plain a {
+  color: black !important;
+}
+.syntaxhighlighter .comments, .syntaxhighlighter .comments a {
+  color: #008000 !important;
+}
+.syntaxhighlighter .string, .syntaxhighlighter .string a {
+  color: #991515 !important;
+}
+.syntaxhighlighter .keyword {
+  color: #0000FF !important;
+}
+.syntaxhighlighter .preprocessor {
+  color: #0000FF !important;
+}
+.syntaxhighlighter .variable {
+  color: #000000 !important;
+}
+.syntaxhighlighter .value {
+  color: #000000 !important;
+}
+.syntaxhighlighter .functions {
+  color: #000000 !important;
+}
+.syntaxhighlighter .OpenTKclass {
+  color: #2b91af !important;
+}
+.syntaxhighlighter .OpenTKenum {
+  color: #2b91af !important;
+}
+.syntaxhighlighter .GLSLintrinsic{
+  color: #800000 !important;
+  font-weight: bold !important;
+}
+.syntaxhighlighter .GLSLspecial{
+  color: #008080 !important;
+}
+.syntaxhighlighter .GLSLnumber{
+  color: #00007F !important;
+}
+.syntaxhighlighter .GLSLpreprocessor{
+  color: #7F7F7F !important;
+}
+.syntaxhighlighter .GLSLstring{
+  color: #FF0000 !important;
+}
+.syntaxhighlighter .constants {
+  color: #000000 !important;
+}
+.syntaxhighlighter .script {
+  font-weight: bold !important;
+  color: #006699 !important;
+  background-color: white !important;
+}
+.syntaxhighlighter .color1, .syntaxhighlighter .color1 a {
+  color: #ff0000 !important;
+}
+.syntaxhighlighter .color2, .syntaxhighlighter .color2 a {
+  color: #ff1493 !important;
+}
+.syntaxhighlighter .color3, .syntaxhighlighter .color3 a {
+  color: red !important;
+}
+
+.syntaxhighlighter .keyword {
+  /*font-weight: bold !important;*/
+}

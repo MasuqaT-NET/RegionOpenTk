@@ -1,0 +1,103 @@
+<h3>原始的なOpenGLプログラム</h3>
+<div class="segment">
+<p>最近のOpenGLはシェーダがなんだとか、バッファオブジェクトがなんだとか言う話が多いようです。それは最新のOpenGLの仕様に合わせるからで、簡単な学習用プログラムなら最初はそういうものを使わなくても十分動作します。ただ、いろいろな描画効果を使いたかったり、描画する物体のポリゴンが多かったりする場合にはとても耐えられませんが…</p>
+<p>というわけで、今回はごくごく簡単なOpenGLのプログラムでいきたいと思います。</p>
+</div>
+
+<h3>点と線の違いはglBeginの違い</h3>
+<div class="segment">
+<p align="center"><img src="OpenTK_misc/01-01_01.png" width="800px" height="600px" alt="Points and Lines"><br />点とグラデーションのある線を描画(色はランダム)</p>
+<p><a href="https://github.com/occar421/region_OpenTK/tree/master/01-01" target="_blank">ソースコード</a>は、OpenGLを少しでもかじっていれば特に難しいということはないです。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:28;" title="01-01_main.cs:フィールド/初期化">
+		Vector2[] position;		//点の位置
+		Color4[] color;			//点の色
+		const int N = 130;		//点の数
+		
+		//800x600のウィンドウを作る。タイトルは「1-1:Points and Lines」
+		public Game()
+			: base(800, 600, GraphicsMode.Default, "1-1:Points and Lines")
+		{
+			position = new Vector2[N];
+			color = new Color4[N];
+			
+</pre>
+<p>点の位置と色を記憶する配列を作成し、コンストラクタで初期化します。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:41; highlight:[49,51]" title="01-01_main.cs:OnLoad関数">
+		//ウィンドウの起動時に実行される。
+		protected override void OnLoad(EventArgs e)
+		{
+			base.OnLoad(e);
+
+			GL.ClearColor(Color4.Black);
+			GL.Enable(EnableCap.DepthTest);
+
+			GL.PointSize(3.0f);		//点の大きさを変更
+
+			GL.LineWidth(1.5f);		//線の太さを変更
+
+			Random();
+		}
+</pre>
+<p>49行目は点の表示の大きさを指定しています。OpenGLのglPointSize関数と同じです。</p>
+<p>51行目は線の表示の太さを指定しています。OpenGLのglLineWidth関数と同じです。</p>
+<p>Random関数はこのプログラム内で定義したもので、点の位置と色をランダムにします。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:56;" title="01-01_main.cs:OnResize関数">
+		//ウィンドウのサイズが変更された場合に実行される。
+		protected override void OnResize(EventArgs e)
+		{
+			base.OnResize(e);
+
+			GL.Viewport(ClientRectangle);
+		}
+</pre>
+<p>今まではこの関数内でProjection行列に行列を設定、ということをしていましたが、今回はそこについては何もしません。画面のサイズを変えると描画結果が伸びたり縮んだりします。</p>
+<p>GL.Viewportについては、ClientRectangleを渡せばGameWindowの場合は画面いっぱいに描画するのでこのようにしました。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:82; highlight:[90,93,94,102,103,96,99,105]" title="01-01_main.cs:OnRenderFrame関数">
+		//画面描画で実行される。
+		protected override void OnRenderFrame(FrameEventArgs e)
+		{
+			base.OnRenderFrame(e);
+
+			GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+
+			//点をすべて描画
+			GL.Begin(BeginMode.Points);
+			for (int i = 0; i &lt; N; i++)
+			{
+				GL.Color4(color[i]);
+				GL.Vertex2(position[i]);
+			}
+			GL.End();
+
+			//線をすべて描画
+			GL.Begin(BeginMode.Lines);
+			for (int i = 0; i &lt; N; i++)
+			{
+				GL.Color4(color[i]);
+				GL.Vertex2(position[i]);
+			}
+			GL.End();
+
+			SwapBuffers();
+		}
+</pre>
+<p>最近のOpenGLのプログラムでは、データをオブジェクトにまとめてから効率よく描画ということをするようです。それとは別に、このコードのようにGL.BeginとGL.Endの間にGL.Color?やGL.Vertex?を入れることで描画させることができます(?は数字)。なお、その間以外でGL.Vertexがある場合、どんな動作をするかわかりません。そのためこの間にインデントを付けている方もいるようです</p>
+<p>GL.Beginの引数はBeginMode列挙体で、Pointsなら点、Linesなら線、Trianglesなら三角形を描画します。BeginModeには種類がたくさんあり、他にはQuadsとPolygonsなどがあります。GL.Beginの引数によって、GL.Endとの間の動作が結構変わってきます。(GL.Vertexが点一つに1、線一本に2、三角形一つに3必要となる)</p>
+<p>今回の例の場合、点はNコで線は(N/2)コになります。</p>
+</div>
+
+<div class="segment">
+<p>他にも関数がありますが、OpenGLやOpenTKの機能に直接関係するものではないのでここでは省略します。</p>
+</div>

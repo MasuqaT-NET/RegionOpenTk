@@ -1,0 +1,73 @@
+<h3>テクスチャの座標も効率よく指定</h3>
+<div class="segment">
+<p>いままで、テクスチャの指定はポリゴンを描画するときに毎回していました。以前、VBOを使ったポリゴンの描画を紹介しましたが、そこに処理を追加することで、テクスチャ座標情報も格納することができます。</p>
+<p>今回はモデルの頂点データを構造体として、格納します。</p>
+<p>通常は、何らかのモデルファイルを読み込んで、それをOpenGLで使えるように整える場合が多いですが、今回はすべてコードで書いています。</p>
+<p>今回は下のテクスチャを貼っていきます。</p>
+<p align="center"><img src="OpenTK_misc/02-12_01.png" width="240px" height="240px" alt="Texture"></p>
+</div>
+
+<h3>テクスチャ座標も効率よく</h3>
+<div class="segment">
+<p align="center"><img src="OpenTK_misc/02-12_02.png" width="800px" height="600px" alt="TextureVBO"><br />角が少し丸いサイコロを描画</p>
+<p><a href="https://github.com/occar421/region_OpenTK/tree/master/02-12" target="_blank">ソースコード</a>は、サイコロのデータを指定している部分以外は、単純なものです。</p>
+</div>
+
+<div class="segment">
+<p>まずは、このプログラムで使う頂点のクラスを示します。</p>
+<pre class="brush: c#; first-line:18;" title="02-12_main.cs:Vertex構造体">
+	struct Vertex
+	{
+		public Vector3 position;
+		public Vector3 normal;
+		public Vector2 uv;
+
+		public Vertex(Vector3 position, Vector3 normal, Vector2 uv)
+		{
+			this.position = position;
+			this.normal = normal;
+			this.uv = uv;
+		}
+
+		public static readonly int Size = Marshal.SizeOf(default(Vertex));
+	}
+</pre>
+<p>1つの頂点データにつき、場所、法線、テクスチャ座標のデータを格納します。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:205; highlight:[212, 219];" title="02-12_main.cs:OnLoad関数の一部">
+			//VAOを1コ作成し、設定
+			GL.GenVertexArrays(1, out vao);
+			GL.BindVertexArray(vao);
+
+			//各Arrayを有効化
+			GL.EnableClientState(ArrayCap.VertexArray);
+			GL.EnableClientState(ArrayCap.NormalArray);
+			GL.EnableClientState(ArrayCap.TextureCoordArray);
+
+			GL.BindBuffer(BufferTarget.ArrayBuffer, vbo);
+
+			//頂点の位置、法線、テクスチャ情報の場所を指定
+			GL.VertexPointer(3, VertexPointerType.Float, Vertex.Size, 0);
+			GL.NormalPointer(NormalPointerType.Float, Vertex.Size, Vector3.SizeInBytes);
+			GL.TexCoordPointer(2, TexCoordPointerType.Float, Vertex.Size, Vector3.SizeInBytes * 2);
+
+			GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
+			GL.BindVertexArray(0);
+</pre>
+<p>ここでは、GL.EnableClientStateとGL.????Pointerの設定項目が増えています。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:354;" title="02-12_main.cs:OnRenderFrame関数の一部">
+			GL.BindTexture(TextureTarget.Texture2D, texture);
+
+			//サイコロを描画
+			GL.BindVertexArray(vao);
+			GL.BindBuffer(BufferTarget.ElementArrayBuffer, ibo);
+			GL.DrawElements(BeginMode.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
+			GL.BindVertexArray(0);
+</pre>
+<p>テクスチャの指定は、テクスチャ座標をVBOで指定していても、いつも通りGL.BindTextureで行います。</p>
+</div>

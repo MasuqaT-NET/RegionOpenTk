@@ -1,0 +1,150 @@
+<h3>組み込む際の注意点</h3>
+<div class="segment">
+<p>WindowsFormでOpenTKを使うには、OpenTK.GLControl.dllも加えて参照に含める必要があります。</p>
+<p>普通にフォームを作成した場合、OpenTKのコントロールの描画イベントが発生しない限りは画面が更新されません。これを解決する方法は下の方に記述します。</p>
+<p>自動生成のものとはソースコードが違うかもしれませんが、イベント処理が主なのでイベントの生成に気を付ければコードが違ってもしっかり動きます。</p>
+<p>ゲームのように高速に動作させたいものには向いていません。ボタンなどのコントロールが簡単に作れるので、マップビューアやモデルビューア、シミュレーションソフトなどに向いていると言えるでしょう。GLControlを複数設置して疑似的な2画面で描画ということもできますが、これは下の方に記述します。</p>
+</div>
+
+<h3>Formに組み込むと複雑？</h3>
+<div class="segment">
+<p align="center"><img src="OpenTK_misc/00-04_01.png" width="800px" height="600px" alt="OpenTK on WindowForm"><br />今回もカラフルな正方形を描画します。</p>
+<p><a href="https://github.com/occar421/region_OpenTK/tree/master/00-04" target="_blank">ソースコード</a>のファイルが、見た目と動作で二つになりました。</p>
+</div>
+
+<div class="segment">
+<p>まずは見た目の"00-04_main.Designer.cs"から見ていきましょう。とは言っても、GUIで追加したほうが自然な気がしますが…</p>
+<pre class="brush: c#; first-line:23;" title="00-04_main.Designer.cs抜粋">
+		#region Windows Form Designer generated code
+	
+		/// &lt;summary&gt;
+		/// Required method for Designer support - do not modify
+		/// the contents of this method with the code editor.
+		/// &lt;/summary&gt;
+		private void InitializeComponent()
+		{
+			this.glControl = new OpenTK.GLControl();
+			this.SuspendLayout();
+			//
+			// glControl
+			//
+			this.glControl.BackColor = System.Drawing.Color.Black;
+			this.glControl.Dock = System.Windows.Forms.DockStyle.Fill;
+			this.glControl.Location = new System.Drawing.Point(0, 0);
+			this.glControl.Name = "glControl";
+			this.glControl.Size = new System.Drawing.Size(784, 562);
+			this.glControl.TabIndex = 0;
+			this.glControl.VSync = false;
+			this.glControl.Load += new System.EventHandler(this.glControl_Load);
+			this.glControl.Paint += new System.Windows.Forms.PaintEventHandler(this.glControl_Paint);
+			this.glControl.Resize += new System.EventHandler(this.glControl_Resize);
+			//
+			// WinForm
+			//
+			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
+			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+			this.BackColor = System.Drawing.SystemColors.Control;
+			this.ClientSize = new System.Drawing.Size(784, 562);
+			this.Controls.Add(this.glControl);
+			this.Name = "WinForm";
+			this.Text = "0-4:WindowsForm";
+			this.ResumeLayout(false);
+		
+		}
+		
+		#endregion
+		
+		private OpenTK.GLControl glControl;
+</pre>
+<p>GUIで追加する場合はVisualStudioでデザインエディタを開いた状態でツールボックスを開きます。ツールボックスのタブの上で右クリックメニューを開くと「アイテムの選択」があるのでそれを選択します。</p>
+<p>「.NET Framework コンポーネント」の中で"glc"でフィルターをかけると、参照に追加されていたらGLControlがあると思うので、チェックボックスをONにしてOKを押すとGLControlがツールボックスに追加されます</p>
+<p>43～45行目はイベント用関数の追加です。今回は無難な名前にしておきました。</p>
+</div>
+
+<div class="segment">
+<p>それではそれでは、今回のキモの動作の部分に入っていきましょう。前回と同じ格好に似せているので、一度も見ていない方は前回の記事を見ておくことをお勧めします。</p>
+<pre class="brush: c#; first-line:1;" title="00-04_main.cs:using">
+/**
+ * 参照設定 : OpenTK OpenTK.GLControl System System.Drawing System.Windows.Forms
+ */
+
+using System;
+using System.Windows.Forms;
+using OpenTK;
+using OpenTK.Graphics;
+using OpenTK.Graphics.OpenGL;
+</pre>
+<p>本当は、Formの追加時にもっとusingが挿入されますが、使わなかったものは消しておきました。多い分には(関数名が被らなければ)問題はないはずです。</p>
+<pre class="brush: c#; first-line:21; highlight:[31,33,58];" title="00-04_main.cs:イベント関数">
+		//glControlの起動時に実行される。
+		private void glControl_Load(object sender, EventArgs e)
+		{
+			GL.ClearColor(Color4.Black);
+			GL.Enable(EnableCap.DepthTest);
+		}
+
+		//glControlのサイズ変更時に実行される。
+		private void glControl_Resize(object sender, EventArgs e)
+		{
+			GL.Viewport(0, 0, glControl.Size.Width, glControl.Size.Height);
+			GL.MatrixMode(MatrixMode.Projection);
+			Matrix4 projection = Matrix4.CreatePerspectiveFieldOfView((float)Math.PI / 4, (float)glControl.Size.Width / (float)glControl.Size.Height, 1.0f, 64.0f);
+			GL.LoadMatrix(ref projection);
+		}
+
+		//glControlの描画時に実行される。
+		private void glControl_Paint(object sender, PaintEventArgs e)
+		{
+			GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+
+			GL.MatrixMode(MatrixMode.Modelview);
+			Matrix4 modelview = Matrix4.LookAt(Vector3.Zero, Vector3.UnitZ, Vector3.UnitY);
+			GL.LoadMatrix(ref modelview);
+
+			GL.Begin(BeginMode.Quads);
+
+			GL.Color4(Color4.White);
+			GL.Vertex3(-1.0f, 1.0f, 4.0f);
+			GL.Color4(Color4.Red);
+			GL.Vertex3(-1.0f, -1.0f, 4.0f);
+			GL.Color4(Color4.Lime);
+			GL.Vertex3(1.0f, -1.0f, 4.0f);
+			GL.Color4(Color4.Blue);
+			GL.Vertex3(1.0f, 1.0f, 4.0f);
+
+			GL.End();
+			glControl.SwapBuffers();
+		}
+</pre>
+<p>前回との違いで気を付ける必要があるのは31,33,58行目です。見た目を弄ったために変化するもの以外に変えるものは少ないです。</p>
+</div>
+
+<h3>補足:常に描画する,複数のGLControl</h3>
+<div class="segment">
+<p>常に描画する場合、ループの中に描画処理やUIの動作を突っ込んでやります。ここで紹介するのはApplication.Idleイベントを使ったものです。</p>
+<p>Application.Idleイベントは名前の通り、アプリケーションがアイドル状態になった時に発生するイベントです。このイベントが発生したらループで描画させます。</p>
+<p>しかし、どこかでループを抜けるように処理しておかなければGUIがフリーズしてしまいます。それを防止するために、今回はGLControlがアイドル状態でない場合にループを抜けるようにしました。</p>
+</div>
+
+<div class="segment">
+<p>複数のGLControlを使って描画する場合、各コントロールを処理する前にOpenTKの処理先を指定しておかなければ、OpenTKはずっと同じコントロールに対して処理し続けます。</p>
+<p>処理先を指定するものがGLControlのMakeCurrent関数です。各コントロールへの処理を始める前に必ず記述します。もし記述しないと、別のコントロールに処理の影響が及んでしまいます。</p>
+</div>
+
+<div class="segment">
+<p align="center"><img src="OpenTK_misc/00-04_02.png" width="800px" height="600px" alt="OpenTK on WindowForm  note"><br />補足用のサンプルプログラム</p>
+<p>両方の処理を実装したものを<a href="https://github.com/occar421/region_OpenTK/tree/master/00-04" target="_blank">ここの00-04::WindowsForm note</a>に置きました。このプログラムをコンパイルして実行すると、下の数字の速度で二つのコントロールの正方形がそれぞれ回転します。2つのコントロールに対して、常に描画したいときに追加すべきものだけ取り出してみます。</p>
+<pre class="brush: c#;" title="00-04_main_note.cs:ループ">
+			Application.Idle += (sender, e) =>
+			{
+				//2つのコントロールがアイドル状態なら両方描画
+				while (glControl1.IsIdle &amp;&amp; glControl2.IsIdle)
+				{
+					Render1();
+					
+					Render2();
+				}
+			};
+</pre>
+<p>C#を使わない人には変なコードに見えるかもしれません。デリゲートとラムダ式を使っていますが、Application.Idleに中かっこ内の処理を登録するということです。簡単に言うと、関数ポインタのようなものに対して、関数を定義しながら代入する…というところでしょうか。(概念から違います。)</p>
+</div>

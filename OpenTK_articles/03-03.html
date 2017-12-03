@@ -1,0 +1,255 @@
+<h3>GLSLの関数を使いこなそう</h3>
+<div class="segment">
+<p>GLSLでもC言語と同じように関数という仕組みがあります。</p>
+<p>関数は自分で定義して使うこともできますが、単純な計算だけでなく、行列やベクトルについての関数も用意されています(Built-in Functions, 組み込み関数)。</p>
+<p>今回は自作関数の定義と、複雑なシェーダプログラムでなくても良く使うであろう組み込み関数について紹介します。</p>
+</div>
+
+<h3>GLSLの関数定義</h3>
+<div class="segment">
+<p>関数の定義は、C言語と同じような文法になっていますが、inとoutとinout修飾子を型の前に付けることができるなど、少し拡張されています。</p>
+<pre class="brush: glsl;" title="simple function definition">
+// プロトタイプ宣言 例
+int addOne(int arg);
+
+// 定義 例
+int addOne(int arg)
+{
+	return arg + 1;
+}
+
+// 引数が無いときはvoidと書かなくてもよい
+void nothing()
+{
+}
+
+// in out 例
+// inは付けなくても変わらない inoutはinとoutを両方付けたものと変わらない
+float halfAndQuarter(in float arg, out float quarter, inout float argio)
+{
+	argio = argio * 2;
+	quarter = arg / 4.0;
+	return arg / 2.0;
+}
+</pre>
+<p>C#で例えると、修飾子無しとinは無し、outはout、inoutはref、になるのでしょうか。なお、呼び出し元ではoutなどと付ける必要はありません。動作などが少しは違うと思いますが…、参考程度に。</p>
+</div>
+<div class="segment">
+<p>また、GLSLの関数はオーバーロードに対応していますが、いくつか注意があります。</p>
+<pre class="brush: glsl;" title="simple function definition">
+float f(in float x, out float y);
+float f(in float x, out vec4 y);
+float f(in vec4 x, out uvec4 y);
+
+vec4 f(in float x, out float y); // Error: 戻り値の型だけが違うのでNG
+float f(in float x, in float y); // Error: 修飾子だけが違うのでNG
+float f(const float x, out float y); // Error: こちらも修飾子だけが違うのでNG
+</pre>
+<p>なお、GLSLにはサブルーチンといって、OpenGLプログラムから使う関数を指定できる仕組みが用意されていますが、それについてはいくつか後に説明する予定です。</p>
+</div>
+
+<h3>組み込み変数</h3>
+<div class="segment">
+<p>GLSLの組み込み関数で算術的なものは、C言語のmathライブラリと同じ名前のようですが、ベクトルや行列でも使えるように拡張されています。</p>
+<p>まずは、角度や三角関数です。頻繁に使うはずです。(ここではvec4でやっていますが、floatでもdvec3等、他の型でもできるはずです。)</p>
+<pre class="brush: glsl;" title="angle and trigonometry functions">
+	const float PI = 3.14159;
+
+	// 度数法[degree]から弧度法[rad]へ
+	vec4 a = radians(vec4(180)); // => vec4(PI)
+	// 弧度法[rad]から度数法[degree]へ
+	vec4 b = degrees(vec4(PI)); // => vec4(180)
+
+	vec4 c = sin(vec4(PI / 2)); // => vec4(1.0)
+	vec4 d = cos(vec4(0.0)); // => vec4(1.0)
+	vec4 e = tan(vec4(PI / 4)); // => vec4(1.0)
+	vec4 f = asin(vec4(0.5)); // => vec4(PI / 6)
+	vec4 g = acos(vec4(0.5)); // => vec4(PI / 3)
+	vec4 h = atan(vec4(2.0), vec4(2.0)); // => vec4(PI / 4)
+	vec4 i = atan(vec4(1.0)); // => vec4(PI / 4)
+
+	vec4 j = sinh(vec4(0.0)); // => vec4(0.0)
+	vec4 k = cosh(vec4(0.0)); // => vec4(1.0)
+	vec4 l = tanh(vec4(0.0)); // => vec4(0.0)
+	vec4 m = asinh(vec4(0.0)); // => vec4(0.0)
+	vec4 n = acosh(vec4(1.0)); // => vec4(0.0)
+	vec4 o = atanh(vec4(0.0)); // => vec4(0.0)
+</pre>
+<p>三角関数類はそのままの名前となっています。</p>
+</div>
+<div class="segment">
+<p>次は累乗です。</p>
+<pre class="brush: glsl;" title="exponential functions">
+	const float E = 2.71828;
+
+	vec4 a = pow(vec4(2.0), vec4(3.0)); // => vec4(8.0) : 2.0^3.0
+	vec4 b = exp(vec4(2.0)); // => vec4(E * E) : e^2.0
+	vec4 c = log(vec4(E * E * E)); // => vec4(3.0) : ln(e^3)
+	vec4 d = exp2(vec4(3.0)); // => vec4(8.0) : 2^3.0
+	vec4 f = log2(vec4(2.0)); // => vec4(1.0) : log(2, 2.0)
+	vec4 g = sqrt(vec4(9.0)); // => vec4(3.0) : 平方根
+	vec4 h = inversesqrt(vec4(0.25)); // => vec4(2.0)
+	// inversesqrt(x) == 1/sqrt(x)
+</pre>
+<p>inversesqrt、ぜひ覚えておきましょう。</p>
+</div>
+<div class="segment">
+<p>次はたくさんある汎用関数です。簡単な条件分岐ではif文ではなく、このような関数の使用を検討すべきです。</p>
+<p>まずは数値を丸める関係の関数から。</p>
+<pre class="brush: glsl;" title="common functions(1)">
+	// 切り捨て
+	vec4 a1 = floor(vec4(1.5));  // => vec4(1.0)
+	vec4 a2 = floor(vec4(-1.5)); // => vec4(-2.0)
+	// 切り上げ
+	vec4 b1 = ceil(vec4(1.5));  // => vec4(2.0)
+	vec4 b2 = ceil(vec4(-1.5)); // => vec4(-1.0)
+	// 0に近づくように端数処理
+	vec4 c1 = trunc(vec4(1.5));  // => vec4(1.0) : floor
+	vec4 c2 = trunc(vec4(-1.5)); // => vec4(-1.0): ceil
+	
+	// 四捨五入(端数が0.5のときは未定義)
+	vec4 d1 = round(vec4(1.4)); // => vec4(1.0)
+	vec4 d2 = round(vec4(1.5)); // => vec4(1.0 or 2.0)
+	vec4 d3 = round(vec4(1.6)); // => vec4(2.0)
+	vec4 d4 = round(vec4(2.5)); // => vec4(2.0 or 3.0)
+	// roundで端数が0.5のときに偶数へ端数処理
+	vec4 e1 = roundEven(vec4(1.4)); // => vec4(1.0)
+	vec4 e2 = roundEven(vec4(1.5)); // => vec4(2.0)
+	vec4 e3 = roundEven(vec4(1.6)); // => vec4(2.0)
+	vec4 e4 = roundEven(vec4(2.5)); // => vec4(2.0)
+	
+	// fract(x) == x - floor(x)
+	vec4 f1 = fract(vec4(1.4));  // => vec4(0.4)
+	vec4 f2 = fract(vec4(-1.4)); // => vec4(0.6)
+
+	vec4 g1 = mod(vec4(3.0), vec4(2.0)); // => vec4(1.0)
+	vec4 g2 = mod(vec4(3.0), 2.0); // => vec4(1.0)
+	
+	// 小数部分を返す 後ろはoutで、整数部分も一緒に返される
+	vec4 o1, o2;
+	vec4 h1 = modf(vec4(3.4), o1);
+	// h1 => vec4(0.4), o1 => vec4(3.0)
+	vec4 h2 = modf(vec4(-3.4), o2);
+	// h2 => vec4(-0.4), o2 => vec4(-3.0)
+</pre>
+<p>modは小数でも計算できます。</p>
+<p>次に符号に関する関数、値を制限する関数や混ぜる関数です。</p>
+<pre class="brush: glsl;" title="common functions(2)">
+	vec4 a1 = abs(vec4(2.0));  // => vec4(2.0)
+	vec4 a2 = abs(vec4(-2.0)); // => vec4(2.0)
+	
+	vec4 b1 = sign(vec4(2.0));  // => vec4(1.0)
+	vec4 b2 = sign(vec4(0.0));  // => vec4(0.0)
+	vec4 b3 = sign(vec4(-2.0)); // => vec4(-1.0)
+	
+	vec4 c1 = min(vec4(4.0), vec4(3.0)); // => vec4(3.0)
+	vec4 c2 = min(vec4(4.0), 3.0); // => vec4(3.0)
+	vec4 d1 = max(vec4(3.0), vec4(4.0)); // => vec4(4.0)
+	vec4 d2 = max(vec4(3.0), 4.0); // => vec4(4.0)
+	// clamp(x, a, b) == min(max(x, a), b)
+	vec4 e1 = clamp(vec4(0.4), vec4(1.0), vec4(2.0)); // => vec4(1.0)
+	vec4 e2 = clamp(vec4(1.4), vec4(1.0), vec4(2.0)); // => vec4(1.4)
+	vec4 e3 = clamp(vec4(2.4), vec4(1.0), vec4(2.0)); // => vec4(2.0)
+	vec4 e4 = clamp(vec4(0.4), 1.0, 2.0); // => vec4(1.0)
+	vec4 e5 = clamp(vec4(1.4), 1.0, 2.0); // => vec4(1.4)
+	vec4 e6 = clamp(vec4(2.4), 1.0, 2.0); // => vec4(2.0)
+	
+	// mix(x, y, a) == x*(1-a) + y*a
+	vec4 f1 = mix(vec4(1.0), vec4(3.0), vec4(0.25)); // => vec4(1.5)
+	vec4 f2 = mix(vec4(1.0), vec4(3.0), 0.25); // => vec4(1.5)
+	vec4 f3 = mix(vec4(1.0), vec4(3.0), bvec4(false)); // => vec4(1.0)
+	vec4 f4 = mix(vec4(1.0), vec4(3.0), true); // => vec4(3.0)
+</pre>
+<p>mixは線形補間というやつです。シェーダプログラム中ではclampとmixは良く使うように思います。</p>
+<p>汎用関数の残りです。ここに書いていない関数もありますが、簡単なものを作るにはこれで十分なはずです。</p>
+<pre class="brush: glsl;" title="common functions(3)">
+	const float NAN = sqrt(-1.0);
+	const float INF = 1.0 / 0.0;
+
+	vec4 a1 = step(vec4(0.5), vec4(0.4)); // => vec4(0.0)
+	vec4 a2 = step(vec4(0.5), vec4(0.6)); // => vec4(1.0)
+	vec4 a3 = step(0.5, vec4(0.4)); // => vec4(0.0)
+	vec4 a4 = step(0.5, vec4(0.6)); // => vec4(1.0)
+	
+	// smoothstep(a, b, x) : xの範囲で { 0.0 |a| エルミート補間(3次関数) |b| 1.0 }
+	vec4 b1 = smoothstep(vec4(1.0), vec4(2.0), vec4(0.4)); // => vec4(0.0)
+	vec4 b2 = smoothstep(vec4(1.0), vec4(2.0), vec4(1.4)); // => vec4(0.352)
+	vec4 b3 = smoothstep(vec4(1.0), vec4(2.0), vec4(2.4)); // => vec4(1.0)
+	vec4 b4 = smoothstep(1.0, 2.0, vec4(0.4)); // => vec4(0.0)
+	vec4 b5 = smoothstep(1.0, 2.0, vec4(1.4)); // => vec4(0.352)
+	vec4 b6 = smoothstep(1.0, 2.0, vec4(2.4)); // => vec4(1.0)
+	
+	bvec4 c1 = isnan(vec4(NAN)); // => bvec4(true)
+	bvec4 c2 = isnan(vec4(1.0)); // => bvec4(false)
+	bvec4 d1 = isinf(vec4(INF)); // => bvec4(true)
+	bvec4 d2 = isinf(vec4(1.0)); // => bvec4(false)
+</pre>
+</div>
+<div class="segment">
+<p>次は幾何的な関数です。</p>
+<pre class="brush: glsl;" title="geometric functions">
+	float a = length(vec2(1.0, 1.0)); // => 1.414...
+	float b = distance(vec2(1.0, 1.0), vec2(-1.0, -1.0)); // => 2.828...
+	
+	float c = dot(vec2(1.0), vec2(2.0)); // => 4.0
+	vec3 d = cross(vec3(1.0, 2.0, 0.0), vec3(3.0, 4.0, 0.0));
+	// => vec3(0.0, 0.0, -2.0)
+	
+	vec2 e = normalize(vec2(1.0)); // => vec2(0.7071...)
+	
+	// normal:法線ベクトル incident:(光の)入射ベクトル
+	vec4 position = ftransform(); // for gl_Position  GLSL1.40まで
+	vec3 new_normal = faceforward(normal, incident, normal_ref); // normal_ref:判定に使う法線
+	vec3 reflection = reflect(incident, normal)
+	vec4 refraction = refract(incident, normal, ratio) // ratio:屈折率
+</pre>
+<p>前にも出てきていたftransform関数は、固定機能パイプラインによって計算された場所の情報を返します(Model-View-Projection行列との演算結果？)。また、faceforwardはincidentとnormal_refの内積を計算し、それが正ならnormalを、負なら-normalを返します(向き合わせに利用？)。</p>
+</div>
+<div class="segment">
+<p>次はベクトル型に関する関数です。</p>
+<pre class="brush: glsl;" title="vector relational functions">
+	// x, y : vec4型
+	bvec4 a_v = lessThan(x, y);
+	bvec4 b_v = lessThanEqual(x, y);
+	bvec4 c_v = greaterThan(x, y);
+	bvec4 d_v = greaterThanEqual(x, y);
+	bool  e_s = (x == y);
+	bvec4 e_v = equal(x, y);
+	bool  f_s = (x != y);
+	bvec4 f_v = notEqual(x, y);
+	
+	bool g1 = any(bvec2(true, true));  // => true
+	bool g2 = any(bvec2(true, false)); // => true
+	bool h1 = all(bvec2(true, true));  // => true
+	bool h2 = all(bvec2(true, false)); // => false
+	
+	bvec2 i = not(bvec2(true, false)); // => bvec2(false, true)
+</pre>
+<p>と言っても、比較処理以外は幾何関係の関数で出てきてしまっています。</p>
+</div>
+<div class="segment">
+<p>最後は行列型に関する関数です。</p>
+<pre class="brush: glsl;" title="matrix functions">
+	mat2 A22 = mat2(1.0, 2.0, 3.0, 4.0);
+	mat2 B22 = mat2(5.0, 6.0, 7.0, 8.0);
+	mat2 a = matrixCompMult(A22, B22);
+	// a => mat2(5.0, 12.0, 21.0, 32.0)
+	
+	vec2 C2 = vec2(1.0, 2.0);
+	vec3 D3 = vec3(3.0, 4.0, 5.0);
+	mat2 b = outerProduct(C2, C2);
+	// b => mat2(1.0, 2.0, 2.0, 4.0)
+	mat3x2 c = outerProduct(C2, D3);
+	// c => mat2(3.0, 6.0, 4.0, 8.0, 5.0, 10.0)
+	
+	mat2 E22 = mat2(1.1, 1.2, 2.1, 2.2);
+	mat2x3 F23 = mat2x3(1.1, 1.2, 1.3, 2.1, 2.2, 2.3);
+	mat2 d = transpose(E22); // => mat2(1.1, 2.1, 1.2, 2.2)
+	mat3x2 e = transpose(F23); // => mat3x2(1.1, 2.1, 1.2, 2.2, 1.3, 2.3)
+	
+	float f = determinant(A22); // => -2.0
+	
+	mat2 g = inverse(A22); // => mat2(-2.0, 1.0, 1.5, -0.5)
+</pre>
+<p>matrixCompMultは行列演算のかけ算ではなく、各要素毎でのかけ算です。outerProductはベクトルAとベクトルBから、行列C(C[i][j] = A[i]*B[j])を作るものです。</p>
+</div>

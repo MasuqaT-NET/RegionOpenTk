@@ -1,0 +1,103 @@
+<h3>IronPythonとは</h3>
+<div class="segment">
+<p>IronPythonとは、.NET FrameworkとMonoで動くPythonです。Pythonは動的言語のため、プラグイン機能や変化の多い部分に適応するなどの使い道があります。また、通常のPythonとの連携もできるでしょう。(もしくはC#が嫌いな人…)</p>
+<p>今回は簡単なウィンドウをIronPythonで作ります。※(Iron)Pythonについては門外漢です。</p>
+</div>
+
+<h3>プログラミングの準備</h3>
+<div class="segment">
+<p>今回は、<a href="http://ironpython.net/">IronPython</a>よりダウンロードしたものを使いました。</p>
+<p>それをVisualStudioに適応すると、プロジェクトに"Python"が追加されると思うので、その中から"IronPython Application"を選択してください。これによってIronPythonのプロジェクトが作成できます。</p>
+<p>プロジェクトのプロパティでpyファイルを"Startup File"に指定し、プロジェクトの中の"Search Paths"にOpenTK.dllのあるフォルダを指定します。これで準備が完了です。</p>
+<p>IronPythonは、C#からIronPython.Hosting.Pythonを使うことで連携ができ、それを用いてOpenTKを利用することもできるはずですが、今回はすべてIronPythonで作ります。</p>
+</div>
+
+<h3>文法以外はほとんど同じプログラム</h3>
+<div class="segment">
+<p align="center"><img src="OpenTK_misc/00-06_01.png" width="800px" height="600px" alt="with IronPython"><br />毎度おなじみ正方形</p>
+<p><a href="https://github.com/occar421/region_OpenTK/tree/master/00-06" target="_blank">ソースコード</a>はもちろんPython</p>
+<pre class="brush: python; first-line:1; highlight:[5,6];" title="00-06_main.py:初期設定/import">
+#
+# Reference Path : OpenTK
+#
+
+import clr
+clr.AddReference("OpenTK")
+
+from System import *
+from OpenTK import *
+from OpenTK.Graphics import *
+from OpenTK.Graphics.OpenGL import *
+from OpenTK.Input import *
+</pre>
+<p>5,6行目はIronPythonではよく出てくるもので、新しくdllを使うという指定です。決まり事なので深く考えないでください。</p>
+<p>Pythonでは、importの後ろのアスタリスクの部分に使うものだけを指定できて便利なのですが、今回はそれに反してすべて使うという指定をしています。</p>
+</div>
+<div class="segment">
+<pre class="brush: python; first-line:14;" title="00-06_main.py:実行部分">
+class Game(GameWindow):
+	#800x600のウィンドウを作る。タイトルは「0-6:with IronPython」
+	def __init__(self):
+		super(Game, self).__init__()
+		self.Width = 800
+		self.Height = 600
+		self.Title = "0-6:with IronPython"
+		self.VSync = VSyncMode.On
+	
+	#ウィンドウの起動時に実行される
+	def OnLoad(self, e):
+		super(Game, self).OnLoad(e)
+
+		GL.ClearColor(Color4.Black)
+		GL.Enable(EnableCap.DepthTest)
+
+	#ウィンドウのサイズが変更された場合に実行される
+	def OnResize(self, e):
+		super(Game, self).OnResize(e)
+
+		GL.Viewport(self.ClientRectangle.X, self.ClientRectangle.Y, self.ClientRectangle.Width, self.ClientRectangle.Height)
+		GL.MatrixMode(MatrixMode.Projection)
+		projection = Matrix4.CreatePerspectiveFieldOfView(float(Math.PI / 4), float(self.Width) / float(self.Height), 1.0, 64.0)
+		GL.LoadMatrix(projection)
+
+	#画面更新で実行される
+	def OnUpdateFrame(self, e):
+		super(Game, self).OnUpdateFrame(e)
+
+		#Escapeキーで終了
+		if(self.Keyboard[Key.Escape]):
+			self.Exit()
+
+	#画面描画で実行される
+	def OnRenderFrame(self, e):
+		super(Game, self).OnRenderFrame(e)
+
+		GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit)
+
+		GL.MatrixMode(MatrixMode.Modelview)
+		modelview = Matrix4.LookAt(Vector3.Zero, Vector3.UnitZ, Vector3.UnitY)
+		GL.LoadMatrix(modelview)
+
+		GL.Begin(BeginMode.Quads)
+
+		GL.Color4(Color4.White)								#色名で指定
+		GL.Vertex3(-1.0, 1.0, 4.0)
+		GL.Color4(Array[float]([1.0, 0.0, 0.0, 1.0]))		#配列で指定
+		GL.Vertex3(-1.0, -1.0, 4.0)
+		GL.Color4(0.0, 1.0, 0.0, 1.0)						#4つの引数にfloat型で指定
+		GL.Vertex3(1.0, -1.0, 4.0)
+		GL.Color4(Byte(0), Byte(0), Byte(255), Byte(255))	#byte型で指定
+		GL.Vertex3(1.0, 1.0, 4.0)
+
+		GL.End()
+
+		self.SwapBuffers()
+
+if __name__ == '__main__':
+	window = Game()
+	window.Run()
+	window.Dispose()
+</pre>
+<p>基底クラスへのコンストラクタの引数がうまく指定できなかったので残念です。</p>
+<p>配列で指定する場合が少し面倒になり、クラスのメンバ変数へアクセスする場合にselfを付けるのが必要になりますが、その他はほとんどC#の場合と同じです。</p>
+</div>

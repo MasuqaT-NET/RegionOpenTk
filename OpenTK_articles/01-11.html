@@ -1,0 +1,58 @@
+<h3>テストとは</h3>
+<div class="segment">
+<p>今回はデプステストとアルファテストというものを行います。</p>
+<p>テストとは文字通り試験のことで、試験には合格と不合格があります。OpenGLの世界のテストは、合格ならば表示、不合格ならば非表示というものです。</p>
+<p>まずは、簡単なデプステストとアルファテストを取り上げます。</p>
+</div>
+
+<h3>自然な描画に必須なデプステスト</h3>
+<div class="segment">
+<p>ところで、テストは何に役立つのでしょうか。</p>
+<p>実はすでに以前のプログラムから使っています。使っている理由は簡単、無いと表示がとてもおかしくなるからです。</p>
+<p>デプスは深さですが、ポリゴンが視点から見てどれくらい距離があるかということを記録していきます。そして、描画時に前後関係を用いてテストし、描画するしないを判定しているのです。</p>
+<p>また、デプスシャドウという影(Shadow)を描画する方法の一つに使われることもあります。</p>
+</div>
+<h3>まだ使い道は少ない</h3>
+<div class="segment">
+<p align="center"><img src="OpenTK_misc/01-11_01.png" width="800px" height="600px" alt="Alpha&Depth Test"><br />トーラスの表示が変</p>
+<p><a href="https://github.com/occar421/region_OpenTK/tree/master/01-11" target="_blank">ソースコード</a>は、テストの設定行が少しだけ追加されました。また、変化をわかりやすくするためにαが0.3の緑色の球を増やし、赤色の球のαを0.6にしました。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:179; highlight:[180,181,184,185];" title="01-11_main.cs:OnLoad関数の一部">
+			//デプステスト
+			GL.Enable(EnableCap.DepthTest);
+			GL.DepthFunc(DepthFunction.Lequal);
+
+			//アルファテスト
+			GL.Enable(EnableCap.AlphaTest);
+			GL.AlphaFunc(AlphaFunction.Greater, 0.5f);
+</pre>
+<p>まずは起動時に、テストを許可します(180,184行目)。</p>
+<p>次に適応する関数を決めます。両方の第1引数の指定は次の通りです。AlphaFuncの第2引数は比較値です。DepthFuncの比較値は、そのピクセルにおいて描画予定のポリゴンの深度値です。</p>
+<dl class="enums">
+<dt>Never</dt>
+<dd>全て不合格</dd>
+<dt>Less</dt>
+<dd>比較値未満なら合格</dd>
+<dt>Equal</dt>
+<dd>比較値と同じなら合格</dd>
+<dt>Lequal</dt>
+<dd>比較値以下なら合格</dd>
+<dt>Greater</dt>
+<dd>比較値を超えるなら合格</dd>
+<dt>Notequel</dt>
+<dd>比較値と異なれば合格</dd>
+<dt>Gequal</dt>
+<dd>比較値以上なら合格</dd>
+<dt>Always</dt>
+<dd>すべて合格</dd>
+</dl>
+<p>今回は、デプステストでLequal(普通の描画)、アルファテストでGreaterと0.5(アルファ値0.5を超えると描画)を指定しています。
+</p>
+</div>
+
+<div class="segment">
+<p>それぞれのテストの有無による描画は下のようになります。</p>
+<p align="center"><img src="OpenTK_misc/01-11_02.png" alt="DepthTestOn" height="300px" width="400px"><img src="OpenTK_misc/01-11_03.png" alt="DepthTestOff" height="300px" width="400px"><img src="OpenTK_misc/01-11_04.png" alt="AlphaTestOn" height="300px" width="400px"><img src="OpenTK_misc/01-11_05.png" alt="AlphaTestOff" height="300px" width="400px"></p>
+</div>

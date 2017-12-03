@@ -1,0 +1,105 @@
+<h3>IBOという概念</h3>
+<div class="segment">
+<p>以前VBOを扱ったときは、頂点の位置だけを情報として保持していました。今回は法線と色情報を保持させたVBOを追加します。</p>
+<p>また、それと同時にIBO(Index Buffer Object)というバッファも用います。</p>
+<p>通常の3Dモデルデータは、頂点を複数のポリゴンが共有する場合がほとんどで、今までの方法ではポリゴンごとに同じ頂点を作成して描画しているので無駄が多く発生しています。その無駄を解消する仕組みは、頂点に対して配列のように番号を付けておいて、ポリゴンの描画時に使う頂点を番号(インデックス)で指定する、というものです。</p>
+<p>簡単なモデルでは実感を得にくいですが、ソフトウェア側で頂点や法線のリストや配列を作り、番号を使って指定するよりは確実に速く動作します。また、一つの頂点の定義が一度で済むので、モデルデータを生成する立場から見ても楽になります。</p>
+</div>
+
+<h3>IBOの使い方</h3>
+<div class="segment">
+<p>IBOを使うには、VBO同様にバッファを生成するための関数を実行しますが、VBOのBufferTargetがArrayBufferなのに対し、IBOのBufferTargetはElementArrayBufferとなっています。</p>
+<p>IBOとVBOはターゲットが違うため同時にひも付けができますが、不必要なときは両方のひも付けを解除しておくことを忘れないでください。</p>
+</div>
+
+<h3>虹色ドーナツ</h3>
+<div class="segment">
+<p align="center"><img src="OpenTK_misc/01-05_01.png" width="800px" height="600px" alt="IBO/VBO[2]"><br />カラフルなトーラスを描画</p>
+<p><a href="https://github.com/occar421/region_OpenTK/tree/master/01-05" target="_blank">ソースコード</a>は、バッファの数を増やしたので、それに伴って記述が増えました。</p>
+<p>VBOはvbo[0]を位置情報用、vbo[1]を法線情報用、vbo[2]を色情報用として用います。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:174; highlight:[175,176,201,203,207]" title="01-05_main.cs:OnLoad関数の一部">
+			//色を材質に変換
+			GL.Enable(EnableCap.ColorMaterial);
+			GL.ColorMaterial(MaterialFace.Front, ColorMaterialParameter.Diffuse);
+
+			//各Arrayを有効化
+			GL.EnableClientState(ArrayCap.VertexArray);
+			GL.EnableClientState(ArrayCap.NormalArray);
+			GL.EnableClientState(ArrayCap.ColorArray);
+
+			//バッファを3コ生成
+			GL.GenBuffers(3, vbo);
+
+			GL.BindBuffer(BufferTarget.ArrayBuffer, vbo[0]);
+			int positionArraySize = positions.Length * Marshal.SizeOf(default(Vector3));
+			GL.BufferData(BufferTarget.ArrayBuffer, new IntPtr(positionArraySize), positions, BufferUsageHint.StaticDraw);
+
+			GL.BindBuffer(BufferTarget.ArrayBuffer, vbo[1]);
+			int normalArraySize = normals.Length * Marshal.SizeOf(default(Vector3));
+			GL.BufferData(BufferTarget.ArrayBuffer, new IntPtr(normalArraySize), normals, BufferUsageHint.StaticDraw);
+
+			GL.BindBuffer(BufferTarget.ArrayBuffer, vbo[2]);
+			int colorArraySize = colors.Length * Marshal.SizeOf(default(Color4));
+			GL.BufferData(BufferTarget.ArrayBuffer, new IntPtr(colorArraySize), colors, BufferUsageHint.StaticDraw);
+
+			//バッファを1コ生成
+			GL.GenBuffers(1, out ibo);
+
+			GL.BindBuffer(BufferTarget.ElementArrayBuffer, ibo);
+			int indexArraySize = indices.Length * sizeof(int);
+			GL.BufferData(BufferTarget.ElementArrayBuffer, new IntPtr(indexArraySize), indices, BufferUsageHint.StaticDraw);
+
+			//バッファのひも付けを解除
+			GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
+			GL.BindBuffer(BufferTarget.ElementArrayBuffer, 0);
+</pre>
+<p>ここで新しく出てきたものはColorMaterialです。前回は材質によって色を表現していましたが、今回は175行目と176行目で、材質のDiffuseに色情報を使うと指定します。</p>
+<p>IBOは、BufferTargetの値をElementArrayBufferにすることで使用できます。ポリゴンの使用頂点がまとめられた、インデックス情報を持った配列を用います。</p>
+<p>今回はGL.BindBufferの第2引数やGL.BindBufferの第1引数に気を付けてください。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:215;" title="01-05_main.cs:OnUnLoad関数の一部">
+			GL.DeleteBuffers(3, vbo);			//バッファを3コ削除
+			GL.DeleteBuffers(1, ref ibo);		//バッファを1コ削除
+
+			GL.DisableClientState(ArrayCap.VertexArray);	//VertexArrayを無効化
+			GL.DisableClientState(ArrayCap.NormalArray);	//NormalArrayを無効化
+			GL.DisableClientState(ArrayCap.ColorArray);		//ColorArrayを無効化
+</pre>
+<p>増えた分のバッファやOpenGLの配列の許可は、終了時にしっかり解除するようにしましょう。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:310; highlight:[324]" title="01-05_main.cs:OnRenderFrame関数の一部">
+			//頂点の位置情報の場所を指定
+			GL.BindBuffer(BufferTarget.ArrayBuffer, vbo[0]);
+			GL.VertexPointer(3, VertexPointerType.Float, 0, 0);
+
+			//頂点の法線情報の場所を指定
+			GL.BindBuffer(BufferTarget.ArrayBuffer, vbo[1]);
+			GL.NormalPointer(NormalPointerType.Float, 0, 0);
+
+			//頂点の色情報の場所を指定
+			GL.BindBuffer(BufferTarget.ArrayBuffer, vbo[2]);
+			GL.ColorPointer(4, ColorPointerType.Float, 0, 0);
+
+			//IBOを使って描画
+			GL.BindBuffer(BufferTarget.ElementArrayBuffer, ibo);
+			GL.DrawElements(BeginMode.Quads, indices.Length, DrawElementsType.UnsignedInt, 0);
+
+			GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
+			GL.BindBuffer(BufferTarget.ElementArrayBuffer, 0);
+</pre>
+<p>GL.VertexPointer関数、GL.NormalPointer関数、GL.ColorPointer関数を使う前に、対応する変数をひも付けしておきます。</p>
+<p>重要なのは310行目です。これはひも付けされたIBOに従って、第1引数の図形で描画します。第2引数は使用する頂点インデックスの長さ、第4引数は頂点インデックスの開始位置です。</p>
+</div>
+
+<h3>補足など</h3>
+<div class="segment">
+<p align="center"><img src="OpenTK_misc/01-05_02.png" width="800px" height="600px" alt="1MpolygonTorus"><br />100万ポリゴンのトーラス</p>
+<p>上のサンプル画像では、ちょっとぎこちなく描画してしまうグローシェーディングですが、ポリゴンの数を増やすときれいに見えます。</p>
+</div>

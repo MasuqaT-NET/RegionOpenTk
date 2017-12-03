@@ -1,0 +1,58 @@
+<h3>テクスチャの表示のしかたを設定</h3>
+<div class="segment">
+<p>テクスチャの設定にも、いろいろな種類があります。</p>
+<p>これを上手く用いることで、テクスチャを効率よく、見栄えよく使うことができるでしょう。</p>
+</div>
+
+<h3>その場に合った設定を</h3>
+<div class="segment">
+<p align="center"><img src="OpenTK_misc/02-02_01.png" width="800px" height="600px" alt="TextureParameter"><br />なめらかな色</p>
+<p><a href="https://github.com/occar421/region_OpenTK/tree/master/02-02" target="_blank">ソースコード</a>は、設定の変更箇所が多くなっています。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:136; highlight:[140,141];" title="02-02_main.cs:OnLoad関数の一部">
+			//テクスチャの設定
+			GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBorderColor, new[] { 0.0f, 0.0f, 0.0f, 1.0f });
+			GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Clamp);
+			GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Clamp);
+			GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+			GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
+</pre>
+<p>テクスチャの設定をするためには、TexParameter関数を用います。最初に適応するテクスチャの種類、次に適応するテクスチャの設定項目、最後にその値を記述します。値はint型かfloat型、その配列に変換します。</p>
+<p>TextureBorderColorはそのままで、テクスチャの境界色の色を設定します。</p>
+<p>TextureWrap?は、テクスチャ画像の?軸ではみ出た場合にどうするかの指定です。下はこの値の列挙型の一覧です。</p>
+<dl class="enums">
+	<dt>Clamp</dt>
+	<dd>テクスチャの外周の色を使用(Linearの境界色の影響を受ける？)</dd>
+	<dt>ClampToEdge</dt>
+	<dd>テクスチャの外周の色を使用</dd>
+	<dt>ClampToBorder</dt>
+	<dd>テクスチャの境界色を使用</dd>
+	<dt>Repeat</dt>
+	<dd>テクスチャの繰り返し</dd>
+	<dt>MirroredRepeat</dt>
+	<dd>テクスチャの繰り返し 境界で鏡のように反転</dd>
+</dl>
+<p>TextureMinFilter,TextureMagFilterは、テクスチャの拡大時と縮小時の設定で、必ず設定しておかなければいけません。下は今の時点で使う列挙型の一覧です(値自体は多い)。</p>
+<dl class="enums">
+	<dt>Nearest</dt>
+	<dd>一番近いテクスチャのピクセルをそのまま採用</dd>
+	<dt>Linear</dt>
+	<dd>付近のテクスチャのピクセルから線形補間</dd>
+</dl>
+<p>設定項目自体は他にもたくさんありますが、簡単なプログラムで実際に使うようなものはこれくらいでしょう。</p>
+</div>
+
+<h3>それぞれの描画結果</h3>
+<div class="segment">
+<p align="center"><img src="OpenTK_misc/02-02_02.png" alt="ClampToEdge" height="300px" width="400px"><img src="OpenTK_misc/02-02_03.png" alt="ClampToBorder" height="300px" width="400px">
+	<img src="OpenTK_misc/02-02_04.png" alt="Repeat" height="300px" width="400px"><img src="OpenTK_misc/02-02_05.png" alt="MirroredRepeat" height="300px" width="400px">
+	<img src="OpenTK_misc/02-02_06.png" alt="Linear" height="300px" width="400px"><img src="OpenTK_misc/02-02_07.png" alt="TextureBorderColor" height="300px" width="400px">
+</p>
+<p>Linear以外はすべてNearestで描画しています。ちなみに、一番上の大きな画像は、LinearでMirroredRepeatで描画したものです。</p>
+<p>私の環境では、ClampとClampToEdgeの違いがわりませんでした…</p>
+<p align="center"><img src="OpenTK_misc/02-02_08.png" width="800px" height="600px" alt="LinearRepeat"></p>
+<p>Linearを使う場合の注意として、上の画像ではテクスチャの端と端が合成されるために緑が黒の部分ににじみ出てしまう、という事象があります。</p>
+<p>Linearはテクスチャを(見た目は)きれいにしてくれますが、にじむことは忘れないでください。</p>
+</div>

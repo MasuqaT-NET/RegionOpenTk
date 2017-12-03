@@ -1,0 +1,160 @@
+<h3>マウスで視点をぐりぐり回す</h3>
+<div class="segment">
+<p>もし3Dの物体をどこかの画面に描画しても、描画結果が3次元的に動かなければ2Dの物体を描画しているのと区別がつきません。</p>
+<p>たいていのゲームは視点の移動があり、向きを自由に変えることができるので、3Dの空間にいることが体感できます。モデリングやビューアソフトなどでは、マウスを使って視点を操作するコントロールがあります。</p>
+<p>以降のサンプルのために、今回はマウスを使ったコントロールを作ってみます。</p>
+</div>
+
+<h3>実装の方針</h3>
+<div class="segment">
+<p>「マウスを使った」コントロールなので、マウスに関係する処理は必須になります。GameWindowはマウスについての情報(クラス)も保持しているので、それにイベントを追加するという形をとります。今回は、そのイベント内で回転行列や拡大率を変化させます。</p>
+<p>その回転行列や拡大率の情報を、モデルビュー行列にかけ合わせたり、パラメータにかけ合わせることで、視点の回転や拡大をすることができます。</p>
+</div>
+
+<h3>モデルビューア風のプログラム</h3>
+<div class="segment">
+<p align="center"><img src="OpenTK_misc/01-02_01.png" width="800px" height="600px" alt="Mouse Tracking View"><br />色つきの正四角錐を描画</p>
+<p><a href="https://github.com/occar421/region_OpenTK/tree/master/01-02" target="_blank">ソースコード</a>は、マウスイベントの追加やそれに付随する変数で長いものになってしまいました。</p>
+<p>なお、今回のコードは使い回しするので、#regionでコードの折り畳みをするようにしました。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:28;" title="01-02_main.cs:フィールド/初期化">
+		#region Camera__Field
+
+		bool isCameraRotating;		//カメラが回転状態かどうか
+		Vector2 current, previous;	//現在の点、前の点
+		Matrix4 rotate;				//回転行列
+		float zoom;					//拡大度
+		float wheelPrevious;		//マウスホイールの前の状態
+
+		#endregion
+
+		//800x600のウィンドウを作る。タイトルは「1-2:Camera」
+		public Game()
+			: base(800, 600, GraphicsMode.Default, "1-2:Camera")
+		{
+			#region Camera__Initialize
+
+			isCameraRotating = false;
+			current = Vector2.Zero;
+			previous = Vector2.Zero;
+			rotate = Matrix4.Identity;
+			zoom = 1.0f;
+			wheelPrevious = 0.0f;
+
+			#endregion
+			
+</pre>
+<p>トラッキング用に4つ、ズーム用に2つの変数を使いました。</p>
+<p>Vector?.Zeroはゼロベクトル、Matrix?.Identityは単位行列を示します。(?は数字)</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:55;" title="01-02_main.cs:カメラ回転用イベント">
+			//マウスボタンが押されると発生するイベント
+			this.Mouse.ButtonDown += (sender, e) =&gt;
+			{
+				//右ボタンが押された場合
+				if (e.Button == MouseButton.Right)
+				{
+					isCameraRotating = true;
+					current = new Vector2(this.Mouse.X, this.Mouse.Y);
+				}
+			};
+			
+			//マウスボタンが離されると発生するイベント
+			this.Mouse.ButtonUp += (sender, e) =&gt;
+			{
+				//右ボタンが押された場合
+				if (e.Button == MouseButton.Right)
+				{
+					isCameraRotating = false;
+					previous = Vector2.Zero;
+				}
+			};
+			
+			//マウスが動くと発生するイベント
+			this.Mouse.Move += (sender, e) =&gt;
+			{
+				//カメラが回転状態の場合
+				if (isCameraRotating)
+				{
+					previous = current;
+					current = new Vector2(this.Mouse.X, this.Mouse.Y);
+					Vector2 delta = current - previous;
+					delta /= (float)Math.Sqrt(this.Width * this.Width + this.Height * this.Height);
+					float length = delta.Length;
+					if (length &gt; 0.0)
+					{
+						float rad = length *  MathHelper.Pi;
+						float theta = (float)Math.Sin(rad) / length;
+						Quaternion after = new Quaternion(delta.Y * theta, delta.X * theta, 0.0f, (float)Math.Cos(rad));
+						rotate = rotate * Matrix4.Rotate(after);
+					}
+				}
+			};
+</pre>
+<p>マウスの右ボタンを押している間に、原点を中心にカメラを回転させる、という仕様にします。イベントの引数のeにはいろいろな情報が入っていますが、その中の押されているボタンをチェックし、右ボタンであることを確かめます。</p>
+<p>右ボタンが押されると、カメラの回転状態とし、そのときのマウスの位置を記憶します。</p>
+<p>マウスが動くとトラッキング状態であるかを確認し、そうであればカメラを回転します。前回からのマウスの移動距離を計測し、四元数を使って回転行列を作ります。四元数の概念や、四元数を使った任意軸回転については特に解説しないので他のサイトをご覧ください。</p>
+<p>右ボタンが離されると、カメラの回転状態を解除し、直前のマウスの位置をリセットします。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:98;" title="01-02_main.cs:ズーム用イベント">
+			//マウスホイールが回転すると発生するイベント
+			this.Mouse.WheelChanged += (sender, e) =&gt;
+			{
+				float delta = (float)this.Mouse.Wheel - (float)wheelPrevious;
+
+				zoom *= (float)Math.Pow(1.2, delta);
+
+				//拡大、縮小の制限
+				if (zoom &gt; 2.0f)
+					zoom = 2.0f;
+				if (zoom &lt; 0.5f)
+					zoom = 0.5f;
+				wheelPrevious = this.Mouse.Wheel;
+			};
+</pre>
+<p>マウスのホイールが回転すると拡大率が変わる、という仕様にします。</p>
+<p>一定の差や比で率を変化させるよりも、指数でとったものを率にかけるほうが自然に見えるようです。</p>
+<p>拡大率は、後述の視野角の拡大と縮小によって実現します。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:181;" title="01-02_main.cs:OnRenderFrame関数">
+		//画面描画で実行される。
+		protected override void OnRenderFrame(FrameEventArgs e)
+		{
+			base.OnRenderFrame(e);
+
+			GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+
+			#region TransFormationMatrix
+
+			Matrix4 modelView = Matrix4.LookAt(Vector3.UnitZ * 10 / zoom, Vector3.Zero, Vector3.UnitY);
+			GL.MatrixMode(MatrixMode.Modelview);
+			GL.LoadMatrix(ref modelView);
+			GL.MultMatrix(ref rotate);
+
+			Matrix4 projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.PiOver4 / zoom, (float)this.Width / (float)this.Height, 1.0f, 64.0f);
+			GL.MatrixMode(MatrixMode.Projection);
+			GL.LoadMatrix(ref projection);
+
+			#endregion
+
+			DrawPyramid();
+
+			SwapBuffers();
+		}
+</pre>
+<p>rotateは回転行列、zoomは拡大率です。</p>
+<p>この場合、モデルビュー行列にMatrix4.LookAtで生成した行列を設定し、回転行列をかけています。また、視野を狭くしてカメラも近づけることで、拡大効果を得られるようになっています。</p>
+</div>
+
+<div class="segment">
+<p>説明していない処理もありますが、マウスでのカメラ操作には関係無いものなので省略しました。</p>
+<p>コメントを見ていただければわかるかと思います。</p>
+</div>

@@ -1,0 +1,155 @@
+<h3>VBOという概念</h3>
+<div class="segment">
+<p>VBOとは、"Vertex Buffer Object"の略です。OpenGLではバッファという言葉がよく出てきますが、簡単に言うと領域のことです。VBOはGPUにあらかじめデータを送るなどして、無駄なデータの転送を減らして効率化します。</p>
+<p>もしVBOを使わずにGL.BeginとGL.Endを用いて描画すると、簡単なモデルなら何のことはないのですが、ポリゴン数が多い場合は非常に動作が重くなります。</p>
+<p>欠点は、はじめての方には少し難しい処理があること、同じ種類の描画方法(TrianglesやLinesなど)でしかまとめて描けないということがあります。</p>
+<p>VBOなどのバッファは複数生成できるので、オブジェクトごとにVBOがあるということも可能です。</p>
+<p>VBOはOpenGL 1.5から標準機能になりました。</p>
+</div>
+
+<h3>VBOの使い方</h3>
+<div class="segment">
+<p>バッファを使うにはバッファを生成するための関数を実行する必要があります。ただ、生成しただけではOpenGLが使えないので、このバッファはこの用途に使う物だという情報を与えてOpenGLにひも付けします。その後にデータを送りたいときに送り込みます。</p>
+<p>バッファを扱う関数の"例"を以下に示します。(それぞれオーバーロードがあるので"例"です)</p>
+<dl class="functions">
+	<dt>GL.GenBuffers(int n, out uint buffers)</dt>
+	<dd>Generate buffer object names.</dd>
+	<dt>GL.BindBuffer(BufferTarget target, uint buffer)</dt>
+	<dd>Bind a named buffer object. </dd>
+	<dt>GL.BufferData(BufferTarget target, IntPtr size, IntPtr data, BufferUsageHint usage)</dt>
+	<dd>Creates and initializes a buffer object's data store. </dd>
+	<dt>GL.DeleteBuffers(int n, ref uint buffers)</dt>
+	<dd>Delete named buffer objects.</dd>
+</dl>
+<p>上から簡単に、バッファの生成、ひも付け、送り込み、削除…です。</p>
+</div>
+
+<div class="segment">
+<p>今回はVBOだけ生成して利用しますが、VBOにデータを入れただけでは何も描画してくれません。VBOをOpenGLが扱う配列として指定しなければなりません。</p>
+<p>今回利用する、VBOを使った表示に関する関数の"例"を以下に示します。</p>
+<dl class="functions">
+	<dt>GL.VertexPointer(int size, VertexPointerType type, int stride, int offset)</dt>
+	<dd>Define an array of vertex data. </dd>
+	<dt>GL.DrawArrays(BeginMode mode, int first, int count)</dt>
+	<dd>Render primitives from array data. </dd>
+</dl>
+<p>上はVBOの場所をOpenGL内の頂点配列として認識させ、下はOpenGL内の配列を描画する関数です。</p>
+</div>
+
+<h3>モデルビューア風のプログラム</h3>
+<div class="segment">
+<p align="center"><img src="OpenTK_misc/01-03_01.png" width="800px" height="600px" alt="VertexBufferObject(1)"><br />3Dで赤色の線をたくさん描画</p>
+<p><a href="https://github.com/occar421/region_OpenTK/tree/master/01-03" target="_blank">ソースコード</a>は、上記の関数が入ったこと以外にはあまり変わりはありません。今回は簡単なものにするために、赤単色での描画になっています。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:38;" title="01-03_main.cs:フィールド/初期化">
+		Vector3[] position;	//頂点の位置
+		const int N = 200;	//頂点の数
+
+		uint vbo;			//VBOのバッファの識別番号を保持
+
+		//800x600のウィンドウを作る。タイトルは「1-3:VertexBufferObject(1)」
+		public Game()
+			: base(800, 600, GraphicsMode.Default, "1-3:VertexBufferObject(1)")
+		{
+			position = new Vector3[N];
+			vbo = 0;
+
+</pre>
+<p>バッファ識別番号を保持する変数の型は、int型、uint型、int[]型、uint[]型のいずれかです。</p>
+<p>今回使うバッファはVBO1つなので、配列でない変数を宣言します。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:126; highlight:[136,139,142,146,149];" title="01-03_main.cs:OnLoad関数">
+		//ウィンドウの起動時に実行される。
+		protected override void OnLoad(EventArgs e)
+		{
+			base.OnLoad(e);
+
+			GL.ClearColor(Color4.Black);
+			GL.Enable(EnableCap.DepthTest);
+
+			Random();
+
+			GL.EnableClientState(ArrayCap.VertexArray);	//VertexArrayを有効化
+
+			//バッファを1コ作成
+			GL.GenBuffers(1, out vbo);
+
+			//ArrayBufferとして"VBO"を指定(バインド)
+			GL.BindBuffer(BufferTarget.ArrayBuffer, vbo);
+
+			int size = position.Length * System.Runtime.InteropServices.Marshal.SizeOf(default(Vector3));
+			//ArrayBufferにデータをセット
+			GL.BufferData(BufferTarget.ArrayBuffer, new IntPtr(size), position, BufferUsageHint.StaticDraw);
+
+			//バッファの指定(バインド)を解除
+			GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
+		}
+</pre>
+<p>まず136行目に新しい関数が出てきています。GL.EnableClient関数は、引数で指定した、OpenGL内の配列の使用を許可する関数です。VBOを使うときに必ず記述するものというわけではないですが、今回の場合は必要です。</p>
+<p>139行目のGL.GenBuffers関数でバッファを作成しています。この時点でこのバッファがOpenGLでの配列バッファ(ArrayBuffer)としてひも付けされたわけではありません。このひも付けを142行目のGL.BindBuffer関数で行います。</p>
+<p>146行目のGL.BufferData関数でArrayBuffer(ここではVBOとして利用)としてひも付けされたバッファにデータを転送します。2番目の引数は転送したい配列のサイズで、3番目の引数は転送したい配列自体です。4番目の引数はバッファのオプションですが、今は気にしなくて大丈夫です。</p>
+<p>149行目でまたGL.BindBuffer関数が出てきていますが、2番目の引数が0となっています。この引数に0が渡されると、OpenGLの第1引数で指定されたバッファのひも付けが外れます。バグを防ぐため、処理が終わったらひも付けは外しておくようにしましょう</p>
+<pre class="brush: c#; first-line:152; highlight:[157,159];" title="01-03_main.cs:OnUnLoad関数">
+		//ウィンドウの終了時に実行される。
+		protected override void OnUnload(EventArgs e)
+		{
+			base.OnUnload(e);
+
+			GL.DeleteBuffers(1, ref VBO);				//バッファを1コ削除
+
+			GL.DisableClientState(ArrayCap.VertexArray);//VertexArrayを無効化
+		}
+</pre>
+<p>バッファを作ったら、削除もしなければなりません。GL.DeleteBuffer関数で、名前の通りバッファを削除します。</p>
+<p>GL.DisableClientState関数は、引数で指定した、OpenGL内の配列の使用を禁止する関数です。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:242; highlight:[248,251];" title="01-03_main.cs:OnRenderFrame関数の一部">
+			GL.Color4(Color4.Red);
+
+			//ArrayBufferとして"VBO"を指定(バインド)
+			GL.BindBuffer(BufferTarget.ArrayBuffer, vbo);
+
+			//頂点のバッファ領域を指定
+			GL.VertexPointer(3, VertexPointerType.Float, 0, 0);
+
+			//バッファの内容を直線で描画
+			GL.DrawArrays(BeginMode.Lines, 0, position.Length);
+
+			//バッファの指定(バインド)を解除
+			GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
+
+			SwapBuffers();
+</pre>
+<p>GL.BindBuffer関数の使い方は上記の通りです。</p>
+<p>248行目のGL.VertexPointer関数で、ひも付けされたバッファのどの場所がOpenGL内の頂点配列かということを指定します。今回は頂点情報が一種類しかないので、第3引数(データ幅)と第4引数(一つの幅の中での位置)は0とします。第1引数は、Vector3で3つの情報領域があるので3とします。</p>
+<p>251行目のGL.DrawArrays関数で、やっと描画となります。この関数は、VertexPointerなどの領域を使って、第1引数の図形の種類で、第2引数の位置から第3引数分の頂点だけ描画します。</p>
+<p>ここでも忘れずにひも付けを解除します。</p>
+</div>
+
+<div class="segment">
+<p>C言語とC#の違いによってIntPtr型などで値を渡すことや、定数のdefineでの定義と列挙体での定義の違いがありますが、その他はOpenGLとの違いはほぼありません。</p>
+<p>今回の例はVBOへの導入のための単純なもので、転送できる頂点の情報の種類を増やすことができます。</p>
+</div>
+
+<h3>補足など</h3>
+<div class="segment">
+<p>今まで、何かを許可する関数はGL.Enable関数でした。しかし、今回はGL.EnableClientState関数というものが出てきました。この違いは何なのでしょうか？</p>
+<p>これはOpenGLが、使用者がコマンドでOpenGL(サーバー)に命令しクライアントに描画する、という形を取っているためで、GL.Enable関数はサーバー側の許可のため、クライアントに置かれる情報はGL.EnableClientState関数で許可しなければなりません。</p>
+</div>
+
+<div class="segment">
+<p>GL.VertexPointer関数について、今回はVBO内の位置の指定のために用いましたが、実際にはこの関数から直接指定することができます。</p>
+<p>GL.VertexPointer関数にはジェネリック関数のオーバーロードがあり、第4引数に任意の値型の配列を指定することができます。これだけでOpenGLの頂点配列の指定が完了します。</p>
+<p>ただ、今後シェーダーを使って描画する際、すべての情報を自分でシェーダーに送り込むことになることを考えると、上で説明した方法のほうが話がつながります。</p>
+</div>
+
+<div class="segment">
+<p>なお、VBOの生成を非同期に行おうとすると、AccessViolationExceptionが発生してうまく実行できないことがあります。または、識別番号が0になったりします。</p>
+<p>巨大なデータを扱うためにVBOの生成を非同期に行う場合は、よく注意してください。(バッファを扱うスレッドが変わるからという理由だと思っています。)</p>
+</div>

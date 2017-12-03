@@ -1,0 +1,45 @@
+<h3>テクスチャとポリゴンのブレンド</h3>
+<div class="segment">
+<p>描画用のテクスチャに色情報があるのと同じように、ポリゴンにも色情報があります。そこで考える必要があるのは、二つの色情報をどう使うかということです。</p>
+<p>今までの例は、ポリゴンの色情報を使わずに、テクスチャの色情報だけを使うというデフォルトの設定で描画していました。</p>
+<p>今回は色がきついこの画像を使います。角と文字「Toolkit」を透明にしています。</p><p align="center"><img src="OpenTK_misc/02-05_01.png" width="240px" height="240px" alt="Texture"></p>
+</div>
+
+<h3>設定で大きく変わります</h3>
+<div class="segment">
+<p align="center"><img src="OpenTK_misc/02-05_02.png" width="800px" height="600px" alt="TextureBlending"><br />テクスチャの透明部分がポリゴンの色に</p>
+<p><a href="https://github.com/occar421/region_OpenTK/tree/master/02-05" target="_blank">ソースコード</a>は、大きく変わりません。テクスチャの色をTomato(マイルドな赤)にしました。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:143; highlight:[144, 145]" title="02-05_main.cs:OnLoad関数内のテクスチャ設定部">
+			//テクスチャの合成の設定
+			GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.TextureEnvMode, (int)TextureEnvMode.Modulate);
+			GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.TextureEnvColor, Color4.Blue);
+</pre>
+<p>テクスチャの合成を設定するには、TexEnvで上のように指定します。(TexEnv自体はいろいろな用途で使うようです)</p>
+<p>TexEnvの引数の2番目にTextureEnvModeを指定した場合は、3番目に合成の方法、TextureEnvColorを指定した場合は、3番目に(合成によっては必要な)色の指定を記述します。</p>
+<p>下が、TextureEnvModeの一覧です。</p>
+<dl class="enums">
+	<dt>Add</dt>
+	<dd>加算合成</dd>
+	<dd>計算式:<math xmlns="http://www.w3.org/1998/Math/MathML"><mi>Color</mi><mo>=</mo><msub><mi>C</mi><mi>p</mi></msub><mo>+</mo><msub><mi>C</mi><mi>s</mi></msub></math></dd>
+	<dt>Blend</dt>
+	<dd>指定した色と合成し、ポリゴン色と合成 ※TextureEnvColorで指定した色が使われます</dd>
+	<dd>計算式:<math xmlns="http://www.w3.org/1998/Math/MathML"><mi>Color</mi><mo>=</mo><msub><mi>C</mi><mi>p</mi></msub><mo>&InvisibleTimes;</mo><mfenced><mrow><mn>1</mn><mo>-</mo><msub><mi>C</mi><mi>s</mi></msub></mrow></mfenced><mo>+</mo><msub><mi>C</mi><mi>c</mi></msub><mo>&InvisibleTimes;</mo><msub><mi>C</mi><mi>s</mi></msub></math></dd>
+	<dt>Decal</dt>
+	<dd>シールのように貼りつける</dd>
+	<dd>計算式:<math xmlns="http://www.w3.org/1998/Math/MathML"><mi>Color</mi><mo>=</mo><msub><mi>C</mi><mi>p</mi></msub><mo>&InvisibleTimes;</mo><mfenced><mrow><mn>1</mn><mo>-</mo><msub><mi>A</mi><mi>s</mi></msub></mrow></mfenced><mo>+</mo><msub><mi>C</mi><mi>s</mi></msub><mo>&InvisibleTimes;</mo><msub><mi>A</mi><mi>s</mi></msub></math></dd>
+	<dt>Modulate</dt>
+	<dd>乗算合成</dd>
+	<dd>計算式:<math xmlns="http://www.w3.org/1998/Math/MathML"><mi>Color</mi><mo>=</mo><msub><mi>C</mi><mi>p</mi></msub><mo>&InvisibleTimes;</mo><msub><mi>C</mi><mi>s</mi></msub></math></dd>
+	<dt>Replace</dt>
+	<dd>テクスチャで置き換え</dd>
+	<dd>計算式:<math xmlns="http://www.w3.org/1998/Math/MathML"><mi>Color</mi><mo>=</mo><msub><mi>C</mi><mi>s</mi></msub></math></dd>
+	<dt>Combine</dt>
+	<dd>※もっと柔軟に設定したい場合に指定 設定項目が多くて長くなるので、ここでは説明しません</dd>
+</dl>
+<p>C<sub>p</sub>:ポリゴン色 C<sub>s</sub>:テクスチャ色 C<sub>c</sub>:指定色 A<sub>s</sub>:テクスチャα値</p>
+<p>それぞれの合成の結果は下のようになります。ポリゴンの角がオレンジのものは、ポリゴンの色(Tomato)がそのまま見えているということです。</p>
+<p align="center"><img src="OpenTK_misc/02-05_03.png" width="400px" height="300px" alt="TextureBlending1"><img src="OpenTK_misc/02-05_04.png" width="400px" height="300px" alt="TextureBlending2"><img src="OpenTK_misc/02-05_05.png" width="400px" height="300px" alt="TextureBlending3"><img src="OpenTK_misc/02-05_06.png" width="400px" height="300px" alt="TextureBlending4"><img src="OpenTK_misc/02-05_07.png" width="400px" height="300px" alt="TextureBlending5"></p>
+</div>

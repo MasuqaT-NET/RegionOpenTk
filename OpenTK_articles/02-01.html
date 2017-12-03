@@ -1,0 +1,114 @@
+<h3>テクスチャとは</h3>
+<div class="segment">
+<p>テクスチャ(Texture)の意味は、表面の質感や手触りを指す概念のようです(Wikipediaより)。3DCGでも、意味通りに質感を表現することに使います。</p>
+<p>物体の模様の表現など、ゲームなどでは必ずと言っていいほど使われている技術です。</p>
+</div>
+
+<h3>テクスチャで広がる可能性</h3>
+<div class="segment">
+<p>模様の表現に使われるテクスチャですが、実際にはテクスチャはさまざまな用途に用いられます。</p>
+<p>通常のテクスチャにはRGBAの色情報が格納されていることが多いのですが、これに法線情報と高さ情報を格納してライティングで使用することで、表面のざらつきや凸凹を表現することができます。</p>
+<p>さらに、テクスチャに物体周辺の景色を格納してライティングでそれを参照することで、ガラスによる屈折や金属による反射を表現することができます。</p>
+<p>また、テクスチャが受け渡すことができる量が大きいことを利用して、汎用のデータコンテナとして利用することもあります。</p>
+<p>テクスチャの技術は、3DCGのいたるところに用いられています。</p>
+</div>
+
+<h3>まずは使い方を覚えましょう</h3>
+<div class="segment">
+<p align="center"><img src="OpenTK_misc/02-01_01.png" width="800px" height="600px" alt="Show Texture"><br />これでもポリゴンは一枚です</p>
+<p><a href="https://github.com/occar421/region_OpenTK/tree/master/02-01" target="_blank">ソースコード</a>は、テクスチャを扱うための最低限のコードにしています(カメラ操作除く)。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:121; highlight:[128,131,134,137,138,155];" title="02-01_main.cs:OnLoad関数">
+		//ウィンドウの起動時に実行される。
+		protected override void OnLoad(EventArgs e)
+		{
+			base.OnLoad(e);
+
+			GL.ClearColor(Color4.Gray);
+
+			GL.Enable(EnableCap.Texture2D);
+
+			//テクスチャ用バッファの生成
+			texture = GL.GenTexture();
+
+			//テクスチャ用バッファのひもづけ
+			GL.BindTexture(TextureTarget.Texture2D, texture);
+
+			//テクスチャの設定
+			GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+			GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
+
+			//テクスチャの色情報を作成
+			int size = 8;
+			float[, ,] colors = new float[size, size, 4];
+			for (int i = 0; i < colors.GetLength(0); i++)
+			{
+				for (int j = 0; j < colors.GetLength(1); j++)
+				{
+					colors[i, j, 0] = (float)i / size;
+					colors[i, j, 1] = (float)j / size;
+					colors[i, j, 2] = 0.0f;
+					colors[i, j, 3] = 1.0f;
+				}
+			}
+			
+			//テクスチャ用バッファに色情報を流し込む
+			GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, size, size, 0, PixelFormat.Rgba, PixelType.Float, colors);
+		}
+</pre>
+<p>テクスチャの利用手順はVBOのそれと似ていて、最初にテクスチャの使用を許可します(128行目)。</p>
+<p>次にGenTetureでテクスチャを格納する領域を確保して、識別番号を取っておきます(131行目)。</p>
+<p>テクスチャに対して操作を行うときは、BindTextureで対象のテクスチャをひも付けをしてから行います(134行目)。ここでは、2次元のテクスチャとしてひも付けしていますが、対象ごとに違うテクスチャをひも付けしておけます。</p>
+<p>137行目と138行目はテクスチャの設定なのですが、ここではテクスチャ拡大や縮小したときにどう扱うかを指定します。テクスチャ設定の中でもこれは必須の設定です。とりあえずはこれが必要だと言うことだけ覚えておいてください。</p>
+<p>色情報の生成については特に書きませんが、多くの場合は画像(または画像化したデータ)を外部ファイルから読み込んで使います。そして、TexImage2Dで対象のテクスチャに情報を流し込みます(155行目)。</p>
+
+<pre class="brush: c#; first-line:158; highlight:[164];" title="01-12_main.cs:OnUnload関数">
+		//ウィンドウの終了時に実行される。
+		protected override void OnUnload(EventArgs e)
+		{
+			base.OnUnload(e);
+
+			//使用したテクスチャを削除
+			GL.DeleteTexture(texture);
+		}
+</pre>
+<p>VBOと同じように、終了時はテクスチャを格納する領域を削除します。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:241; highlight:[246,249,252,255];" title="02-01_main.cs:OnRenderFrame関数の一部">
+			//ポリゴン表示
+			GL.Color4(Color4.White);
+
+			GL.Begin(BeginMode.Quads);
+
+			GL.TexCoord2(1.0, 1.0);
+			GL.Vertex3(1, 1, 0);
+
+			GL.TexCoord2(0.0, 1.0);
+			GL.Vertex3(-1, 1, 0);
+
+			GL.TexCoord2(0.0, 0.0);
+			GL.Vertex3(-1, -1, 0);
+
+			GL.TexCoord2(1.0, 0.0);
+			GL.Vertex3(1, -1, 0);
+
+			GL.End();
+</pre>
+<p>ここはポリゴンを一つ描画している単純なコードです。</p>
+<p>テクスチャをポリゴンに対して適応する場合、TexCoord?を用います(今回は2次元テクスチャのためTexCoord2)。TexCoordで指定する数字は、頂点に対応するテクスチャ座標です。ちょうど色を指定したのと同じように、頂点に属性を持たせます。</p>
+</div>
+
+<h3>テクスチャの座標</h3>
+<div class="segment">
+<p>さて、テクスチャの座標とは何でしょうか。</p>
+<p align="center"><img src="OpenTK_misc/02-01_02.png" width="800px" height="600px" alt="Texture Coordinate"><br />2次元の場合s軸とt軸</p>
+<p>テクスチャの座標は上のように1.0四方の正方形の中に圧縮されて入っています。TexCoordではこの座標を指定します。</p>
+<p>指定する場合は0.0から1.0以外の値でもよくて、はみ出している場所は指定した方法で補完されます(テクスチャの繰り返しや、終端の色で塗りつぶすなど)。</p>
+<p>もちろん、すべての領域を使わなければいけないわけでもありませんし、複数のポリゴンに適応しても構いません。歪んでいても大丈夫です。</p>
+<p>また、両面表示する場合は裏側にも適応されています。表裏の同じ位置なら同じ色です。</p>
+	<p align="center"><img src="OpenTK_misc/02-01_03.png" alt="OutOfRange" height="300px" width="400px"><img src="OpenTK_misc/02-01_04.png" alt="Small" height="300px" width="400px"><img src="OpenTK_misc/02-01_05.png" alt="MultiPolygon" height="300px" width="400px"><img src="OpenTK_misc/02-01_06.png" alt="Warp" height="300px" width="400px"></p>
+</div>

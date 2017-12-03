@@ -1,0 +1,70 @@
+<h3>テクスチャの3次元版</h3>
+<div class="segment">
+<p>いままで使ってきたテクスチャは、写真や絵のような、2次元のデータでした。</p>
+<p>今回扱うのは、3次元のテクスチャ(ボリュームテクスチャ)です。無理して現実世界に当てはめるとすれば、細かく賽の目状にした物体の破片の色になるのでしょうか。</p>
+<p>2次元のテクスチャと比べると大量の画素データが必要になるので、注意が必要です。上手く使えば、その欠点以上の効果が得られるでしょう。2次元データなどから生成するという手法もあるようです。</p>
+</div>
+
+<h3>画素のデータ量は膨大</h3>
+<div class="segment">
+<p align="center"><img src="OpenTK_misc/02-11_01.png" width="800px" height="600px" alt="VolumeTexture"><br />きれいな四面体を2つ</p>
+<p><a href="https://github.com/occar421/region_OpenTK/tree/master/02-11" target="_blank">ソースコード</a>は、2Dだった部分が3Dに変わっています。</p>
+</div>
+
+<div class="segment">
+<p>まず引数の比較のために、今まで使ってきたTexImage2Dを確認します。</p>
+<pre class="brush: c#; first-line:131; highlight:[132, 138, 141, 142, 143, 166]" title="02-11_main.cs:OnLoad関数の一部">
+			//Texture3Dの許可
+			GL.Enable(EnableCap.Texture3DExt);
+
+			//テクスチャ用バッファの生成
+			texture = GL.GenTexture();
+
+			//テクスチャ用バッファのひもづけ
+			GL.BindTexture(TextureTarget.Texture3D, texture);
+
+			//テクスチャの設定
+			GL.TexParameter(TextureTarget.Texture3D, TextureParameterName.TextureWrapR, (int)TextureWrapMode.ClampToEdge);
+			GL.TexParameter(TextureTarget.Texture3D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
+			GL.TexParameter(TextureTarget.Texture3D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
+			GL.TexParameter(TextureTarget.Texture3D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+			GL.TexParameter(TextureTarget.Texture3D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
+
+			//テクスチャの色情報を作成
+			int size = 8;
+			float[,] colors = new float[size * size * size, 4];
+			for (int i = 0; i < size; i++)
+			{
+				for (int j = 0; j < size; j++)
+				{
+					for (int k = 0; k < size; k++)
+					{
+						int index = size * size * i + size * j + k;
+						colors[index, 0] = (float)i / size;
+						colors[index, 1] = (float)j / size;
+						colors[index, 2] = (float)k / size;
+						colors[index, 3] = 1.0f;
+					}
+				}
+			}
+
+			//テクスチャ用バッファに色情報を流し込む
+			GL.TexImage3D(TextureTarget.Texture3D, 0, PixelInternalFormat.Rgba, size, size, size, 0, OpenTK.Graphics.OpenGL.PixelFormat.Rgba, PixelType.Float, colors);
+</pre>
+<p>いままでTexture2Dのような2Dという名前がついた関数やenum値は、Texture3Dのような3Dという名前がついた関数やenum値に変わります。</p>
+<p>注意すべき点は、データの次元が増えたので、設定すべき項目が増えたものがあることです。例えば、143行目にあるTextureWrapTや、166行目にsizeを3回(幅/高さ/奥行)指定しているTexImage3Dなどです。</p>
+<pre class="brush: c#; first-line:256; highlight:[256, 258, 260]" title="02-11_main.cs:OnRenderFrame関数の一部">
+			GL.TexCoord3(1, 0, 0);
+			GL.Vertex3(1, -1, -1);
+			GL.TexCoord3(0, 1, 0);
+			GL.Vertex3(-1, 1, -1);
+			GL.TexCoord3(0, 0, 1);
+			GL.Vertex3(-1, -1, 1);
+</pre>
+<p>2DのテクスチャではTexCoord2を使っていましたが、ここではTexCoord3を使います。引数の数は3つになります。</p>
+</div>
+
+<div class="segment">
+<p>さまざまな角度から。すべて1つの同じボリュームテクスチャで描画されています。</p>
+<p align="center"><img src="OpenTK_misc/02-11_02.png" width="400px" height="300px" alt="VolumeTexture1"><img src="OpenTK_misc/02-11_03.png" width="400px" height="300px" alt="VolumeTexture2"><img src="OpenTK_misc/02-11_04.png" width="400px" height="300px" alt="VolumeTexture3"><img src="OpenTK_misc/02-11_05.png" width="400px" height="300px" alt="VolumeTexture4"></p>
+</div>

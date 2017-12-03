@@ -1,0 +1,131 @@
+<h3>注意すべきこと</h3>
+<div class="segment">
+<p>WPFとは「Windows Presentaion Foundation」の略です。Monoプロジェクトではまだ対応しないという話なので、当分はWindows専用プログラムになると思います。</p>
+<p>OpenTKをWPFに組み込む場合、WPFの"WindowsFormsHost"という部品を使い、その中にGLControlを組み込むという形をとります。</p>
+<p>こちらもゲームなどには向いていませんが、HTMLとCSS(とCGI)を使うような感覚でデザインできるWPFの利点を生かしたものにどうぞ。</p>
+</div>
+
+<h3>WPFに組み込むということ</h3>
+<div class="segment">
+<p>上記の通り、WPFに組み込むと言っても実際に組み込んでいるわけではなく、WPFの "WindowsFormsHost"というコントロールを用います。</p>
+<p>前回はglControlにイベントを追加して画面の初期化や描画をしていましたが、WPFに組み込む場合も全く同じように追加していきます。</p>
+</div>
+
+<h3>XAMLを使わないパターン</h3>
+<div class="segment">
+<p>動的にglControlを追加するということは少ないと思うので、特に解説はしませんがWPFで追加すべきコードは置いておきます。基本的にはホストをどこかの子要素として追加します。</p>
+<pre class="brush: c#; first-line:1;" title="XAMLを使わない、簡単なコード">
+using System.Windows;
+using OpenTK;
+using OpenTK.Graphics;
+using OpenTK.Graphics.OpenGL;
+
+namespace OpenTK_Sample
+{
+	public partial class WPF : Window
+	{
+		public WPF()
+		{
+			InitializeComponent();
+
+			#region 追加すべき部分
+			System.Windows.Forms.Integration.WindowsFormsHost host = new System.Windows.Forms.Integration.WindowsFormsHost();
+			GLControl glControl = new GLControl();
+			glControl.Load += (sender, e) =>
+			{
+				GL.ClearColor(System.Drawing.Color.Black);
+			};
+			glControl.Paint += (sender, e) =>
+			{
+				GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+				glControl.SwapBuffers();
+			};
+			host.Child = glControl;
+			this.Content = host;	//メインウィンドウの子としてホストを追加
+			#endregion
+		}
+	}
+}
+</pre>
+</div>
+
+<h3>XAMLを使うパターン</h3>
+<div class="segment">
+<p align="center"><img src="OpenTK_misc/00-05_01.png" width="800px" height="600px" alt="OpenTK on WPF"><br />またまたカラフルな正方形を描画します。</p>
+<p><a href="https://github.com/occar421/region_OpenTK/tree/master/00-05" target="_blank">ソースコード</a>のファイルは、今回も見た目(XAML)と動作(C#)で二つです。</p>
+<p>WPFでプロジェクトを作るとAppとMainWindowの二つができると思いますが、MainWindowのほうだけを改変するので、そこだけ説明します。</p>
+</div>
+
+<div class="segment">
+<p>まずは見た目の"00-05_main.xaml"から見ていきましょう。</p>
+<pre class="brush: xml; first-line:1; highlight:[4,7];" title="00-05.main.xaml">
+&lt;Window x:Class="OpenTK_Sample.WPF"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:OpenTK="clr-namespace:OpenTK;assembly=OpenTK.GLControl"
+        Title="0-5:WindowsPresentationFoundation" Height="600" Width="800"&gt;
+	&lt;WindowsFormsHost&gt;
+		&lt;OpenTK:GLControl x:Name="glControl" Load="glControl_Load" Resize="glControl_Resize" Paint="glControl_Paint" /&gt;
+	&lt;/WindowsFormsHost&gt;
+&lt;/Window&gt;
+</pre>
+<p>4行目と7行目はとても重要です。"x:Name"ではglControlという名前にしていますが、その他の名前にすればそれがこの要素のインスタンス名となります。</p>
+</div>
+
+<div class="segment">
+<pre class="brush: c#; first-line:1;" title="00-05_main.xaml.cs:using">
+/**
+ * 参照設定 : OpenTK OpenTK.GLControl PresentationCore PresentationFramework System System.Drawing
+ *				System.Windows.Forms System.Xaml WindowsBase WindowsFormsIntegration
+ */
+
+using System;
+using System.Windows;
+using OpenTK;
+using OpenTK.Graphics;
+using OpenTK.Graphics.OpenGL;
+</pre>
+<p>参照設定が増えましたが、ほとんどはWPFプロジェクトの作成時に追加されているものです。</p>
+<pre class="brush: c#; first-line:25;" title="00-05_main.xaml.cs:イベント関数">
+		//glControlの起動時に実行される。
+		private void glControl_Load(object sender, EventArgs e)
+		{
+			GL.ClearColor(Color4.Black);
+			GL.Enable(EnableCap.DepthTest);
+		}
+
+		//glControlのサイズ変更時に実行される。
+		private void glControl_Resize(object sender, EventArgs e)
+		{
+			GL.Viewport(0, 0, glControl.Size.Width, glControl.Size.Height);
+			GL.MatrixMode(MatrixMode.Projection);
+			Matrix4 projection = Matrix4.CreatePerspectiveFieldOfView((float)Math.PI / 4, (float)glControl.Size.Width / (float)glControl.Size.Height, 1.0f, 64.0f);
+			GL.LoadMatrix(ref projection);
+		}
+
+		//glControlの描画時に実行される。
+		private void glControl_Paint(object sender, System.Windows.Forms.PaintEventArgs e)
+		{
+			GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+
+			GL.MatrixMode(MatrixMode.Modelview);
+			Matrix4 modelview = Matrix4.LookAt(Vector3.Zero, Vector3.UnitZ, Vector3.UnitY);
+			GL.LoadMatrix(ref modelview);
+
+			GL.Begin(BeginMode.Quads);
+
+			GL.Color4(Color4.White);
+			GL.Vertex3(-1.0f, 1.0f, 4.0f);
+			GL.Color4(Color4.Red);
+			GL.Vertex3(-1.0f, -1.0f, 4.0f);
+			GL.Color4(Color4.Lime);
+			GL.Vertex3(1.0f, -1.0f, 4.0f);
+			GL.Color4(Color4.Blue);
+			GL.Vertex3(1.0f, 1.0f, 4.0f);
+
+			GL.End();
+			glControl.SwapBuffers();
+		}
+</pre>
+<p>この部分に限っては、前回と変わっていません。コンストラクタでデリゲートと匿名関数を使ってイベントを追加すれば、よりxamlのコードがスマートになるでしょう。</p>
+</div>

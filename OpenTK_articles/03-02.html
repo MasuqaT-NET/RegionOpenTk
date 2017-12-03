@@ -1,0 +1,252 @@
+<h3>今後GLSLを書いていくために</h3>
+<div class="segment">
+<p>GLSLという言語はC言語と非常によく似ています。C言語に便利な構文を追加したような感じになります。</p>
+<p>GLSLでは、扱うことが多い行列やベクトルの演算をしやすくするための型が用意されています。</p>
+<p>今回は、GLSLでのプログラミングの基礎の基礎になる型について紹介します。</p>
+</div>
+
+<h3>GLSLの型 Overview</h3>
+<div class="segment">
+<p>※ベクトルと行列にある'?'には2か3か4が入ります。</p>
+<p>まず、基本的な型として、float、double、bool、int、uint(とvoid)があります。</p>
+<pre class="brush: glsl;" title="base types">
+	float a = 0.0;
+	int b = 1;
+	bool c = true;
+	float d = .1;
+	float e = 1; // int => float へ暗黙のキャスト
+	const float f = 3.14;
+</pre>
+<p>そして、それに対応したベクトルの型として、vec?、dvec?、bvec?、ivec?、uvec?があります。</p>
+<p>行列の型は、mat?x?(floatに対応)とdmat?x?(doubleに対応)があり、正方行列のときはmat?やdmat?という名前で使えます。</p>
+<p>また、sampler#D、image#Dのようにさまざまなテクスチャを扱う型も用意されています(Opaque Types)。</p>
+<p>その他に、構造体や配列も使うことができます。</p>
+</div>
+
+<h3>ベクトル型</h3>
+<div class="segment">
+<p>ベクトル型の変数を生成するために、コンストラクタを使います。柔軟に指定することができます。</p>
+<pre class="brush: glsl;" title="vector type constructors and casts">
+	//基本的なもの
+	vec2 a2 = vec2(0.0, 1.0);
+	vec3 b3 = vec3(2.0, 3.0, 4.0);
+	vec4 c4 = vec4(5.0, 6.0, 7.0, 8.0);
+
+	//OK
+	vec3 d3 = vec3(9.0); // => vec3(9.0, 9.0, 9.0);
+	vec4 e4 = vec4(a2, 9.0, 9.0);  // => vec4(0.0, 1.0, 9.0, 9.0);
+	vec4 f4 = vec4(a2, a2); // => vec4(0.0, 1.0, 0.0, 1.0);
+	vec4 g4 = vec4(9.0, b3); // => vec4(9.0, 2.0, 3.0, 4.0);
+	vec2 h2 = vec2(c4); // => vec2(5.0, 6.0);
+	vec3 i3 = vec3(c4); // => vec3(5.0, 6.0, 7.0);
+	vec4 j4 = vec4(a2, b3); // => vec4(0.0, 1.0, 2.0, 3.0);
+	vec4 k4 = vec4(1.0, c4); // => vec4(1.0, 5.0, 6.0, 7.0);
+
+	//Error
+	vec4 z = vec4(1.0, 2.0); // =X=> vec4(1.0, 2.0, 2.0, 2.0);
+	vec4 y = vec4(b3); // =X=> vec4(2.0, 3.0, 4.0, 0.0);
+	vec4 x = vec4(9.0, a2); // =X=> vec4(9.0, 0.0, 1.0, 0.0);
+	vec4 w = vec4(b3, b3, b3); // =X=> vec4(2.0, 3.0, 4.0, 2.0);
+</pre>
+<p>ベクトル型には成分にアクセスするための識別子が用意されています。</p>
+<p>配列のように、何番目の要素というのを角かっこで指定できます。xyzw(座標)やrgba(色)、stpq(テクスチャ座標)の文字の組を使って、1つの値、または新たなベクトルを表すこともできます。</p>
+<pre class="brush: glsl;" title="vector type components">
+	vec2 a2 = vec2(0.0, 1.0);
+	vec3 b3 = vec3(2.0, 3.0, 4.0);
+	vec4 c4 = vec4(5.0, 6.0, 7.0, 8.0);
+
+	//indexerのように
+	float d = a2[0]; // => 0.0
+	float e = a2[-1]; // Error
+	float f = a2[3];  // Error
+	int index = 1;
+	float g = a2[index]; // => 1.0
+	index = 10;
+	float h = a2[index]; // => ???
+
+	//構造体のような指定
+	float i = c4.x; // c4.r c4.s, => 5.0
+	float j = c4.w; // c4.a c4.q, => 8.0
+	float k = a2.z; // a2.b a2.p, Error
+	vec2 l2 = b3.xy; // b3.rg b3.st, => vec2(2.0, 3.0)
+	vec4 m4;
+	m4.rgb = b3; // m4.xyz m4.stp, m4 => vec3(2.0, 3.0, 4.0, ???)
+
+	//役に立たないが、こういうことも可能
+	vec4 n4 = c4.zwxx; // c4.barr c4.pqss, => vec4(7.0, 8.0, 5.0, 5.0)
+	vec4 o4;
+	o4.xwzy = b3.xxyy; // o4.rabg o4.sqpt, o4 => vec4(2.0, 3.0, 3.0, 2.0)
+	o4.xxyz = c4; // o4.rrgb o4.sstp, Error :被代入側は文字が被っていてはいけない
+	float p = c4.wzy[0]; // c4.rbg[0] c4.spt[0], => 5.0
+	vec4 q4 = c4.wzyx.wzyx; // c4.wzyx.abgr c4.qpts.wzyx etc... , => vec4(5.0, 6.0, 7.0, 8.0)
+	float r = b3.xz.g; // b3.rb.s b3.sp.x etc... , => 4.0
+	vec2 s2 = a2.xr; // a2.qg a2.wp etc... , Error :文字の組は超えて使ってはいけない
+</pre>
+<p>演算子は、代入と共にベクトル同士の加減算やスカラーとの演算のものが用意されています。</p>
+<pre class="brush: glsl;" title="vector type operators">
+	vec2 a2 = vec2(0.0, 1.0);
+	vec2 b2 = vec2(2.0, 3.0);
+	vec4 c4 = vec4(5.0, 6.0, 7.0, 8.0);
+
+	vec2 d2 = a2 + 9.0; // => vec2(0.0 + 9.0, 1.0 + 9.0)
+	vec2 e2 = a2 * 9.0; // => vec2(0.0 * 9.0, 1.0 * 9.0)
+	d2 += 9.0; // d2 = d2 + 9.0
+
+	vec2 f2 = a2 + b2; // => vec2(0.0 + 2.0, 1.0 + 3.0)
+	vec2 g2 = a2 * b2; // => vec2(0.0 * 2.0, 1.0 * 3.0) :内積はdot関数 外積はcross関数
+	f2 += a2; // f2 = f2 + a2
+
+	vec4 h4 = a2 + c4; // => vec4(0.0 + 5.0, 1.0 + 6.0,  + 7.0,  + 8.0)
+	vec2 i2 = a2 + c4; // Error
+</pre>
+</div>
+
+<h3>行列型</h3>
+<div class="segment">
+<p>行列型の変数を生成するに、こちらもコンストラクタを使います。注意しておかなければならないのは、OpenGLの行列は列優先(column-major)で使われるということです。これはGLSLにももちろん影響しているため、コードの見た目とは違う配置で値が入ることがあります。</p>
+<p>引数にある要素数の合計と行列の要素数が合ってさえいれば、自由に作ることができるみたいです。</p>
+<math display = 'block' xmlns='http://www.w3.org/1998/Math/MathML'>
+  <mrow>
+    <mi>mat3</mi>
+    <mfenced open = '(' close = ')'>
+      <mrow>
+        <mn>0</mn>
+        <mo>,</mo>
+        <mtext>&nbsp;</mtext>
+        <mn>1</mn>
+        <mo lspace='0px' rspace='0px'>, ...&nbsp;</mo>
+        <mo>,</mo>
+        <mtext>&nbsp;</mtext>
+        <mn>8</mn>
+      </mrow>
+    </mfenced>
+    <mo>=</mo>
+    <mfenced open = '(' close = ')'>
+      <mtable rowalign='center'>
+        <mtr>
+          <mtd>
+            <mn>0</mn>
+          </mtd>
+          <mtd>
+            <mn>3</mn>
+          </mtd>
+          <mtd>
+            <mn>6</mn>
+          </mtd>
+        </mtr>
+        <mtr>
+          <mtd>
+            <mn>1</mn>
+          </mtd>
+          <mtd>
+            <mn>4</mn>
+          </mtd>
+          <mtd>
+            <mn>7</mn>
+          </mtd>
+        </mtr>
+        <mtr>
+          <mtd>
+            <mn>2</mn>
+          </mtd>
+          <mtd>
+            <mn>5</mn>
+          </mtd>
+          <mtd>
+            <mn>8</mn>
+          </mtd>
+        </mtr>
+      </mtable>
+    </mfenced>
+  </mrow>
+</math>
+<pre class="brush: glsl;" title="matrix type constructors and casts">
+	//基本的なもの
+	mat2 a22 = mat2(1.1, 2.1, 1.2, 2.2);
+	mat4 b44 = mat4(1.1, 2.1, 3.1, 4.1, 2.1, 2.2, 2.3, 2.4, 3.1, 3.2, 3.3, 3.4, 4.1, 4.2, 4.3,4.4);
+	mat3x2 c32 = mat3x2(1.1, 2.1, 2.1, 2.2, 3.1, 3.2);
+
+	//OK
+	mat2 d22 = mat2(1.0); // => mat2(1.0, 0.0, 0.0, 1.0) :対角要素に値を入れる 他は0.0
+	vec2 column1 = vec2(1.1, 2.1);
+	vec2 column2 = vec2(1.2, 2.2);
+	mat2 e22 = mat2(column1, column2); // => mat2(1.1, 2.1, 1.2, 2.2)
+	mat3 f33 = mat3(a22); // => mat3(1.1, 2.1, 0.0, 1.2, 2.2, 0.0, 0.0, 0.0, 1.0)
+						  //    :左上詰め 対角は1.0 他は0.0で余りを埋める
+	mat2 g22 = mat2(b44); // => mat2(1.1, 2.1, 1.2, 2.2);
+	mat2x3 h23 = mat2x3(column1, 7.7, 8.8, column2); // => mat2x3(1.1,2.1,  7.7,  8.8,  1.2,2.2);
+	vec2 i2 = vec2(1.0);
+	mat4 j44 = mat4(i2, i2, i2, i2, i2, i2, i2, i2); // all 1.0
+
+	//Error
+	mat2 z = mat2(1.0, 2.0);
+</pre>
+<p>行列にも、成分にアクセスするための構文が用意されています。といっても、配列のような角かっこでの指定のみで、返ってくるのが1つの列(column)となります。</p>
+<pre class="brush: glsl;" title="matrix type components">
+	mat2 a22 = mat2(1.1, 2.1, 1.2, 2.2);
+
+	vec2 b2 = a22[0]; // => vec2(1.1, 2.1)
+	vec2 c2 = a22[-1]; // Error
+	vec2 d2 = a22[3]; // Error
+	float e = a22[1][1]; // => 2.2
+	float f = a22[1].x; // => 1.2
+</pre>
+<p>演算子は、代入と共に行列同士の加減算と、スカラーやベクトルとの演算のものが用意されています。</p>
+<pre class="brush: glsl;" title="vector type operators">
+	mat2 a22 = mat2(1.1, 2.1, 1.2, 2.2);
+	vec2 b2 = vec2(7.0, 8.0);
+
+	mat2 c22 = a22 + 3.0; // => mat2(1.1 + 3.0, 2.1 + 3.0, 1.2 + 3.0, 2.2 + 3.0);
+	mat2 d22 = a22 * 3.0; // => mat2(1.1 * 3.0, 2.1 * 3.0, 1.2 * 3.0, 2.2 * 3.0);
+	d22 += 3.0; // d22 = d22 + 3.0
+
+	vec2 e2 = a22 * b2; // => vec2(1.1 * 7.0 + 1.2 * 8.0, 2.1 * 7.0 + 2.2 * 8.0)
+	vec2 f2 = b2 * a22; // => vec2(7.0 * 1.1 + 8.0 * 2.1, 7.0 * 1.2 + 8.0 * 2.2)
+	// e2 != f2 
+
+	mat2 g22 = a22 * c22;
+	mat2 h22 = c22 * a22;
+	// g22 != h22
+</pre>
+</div>
+
+<h3>構造体と配列</h3>
+<div class="segment">
+<p>C言語と同じように、構造体を定義することもできます。しかし、使うときの文法は少し違います。</p>
+<pre class="brush: glsl;" title="construct">
+struct material {
+	vec4 color;
+	float shininess;
+};
+struct light {
+	vec3 direction;
+	vec3 color;
+} primalyLight; //定義と共に変数を宣言できる
+
+void main(void)
+{
+	material bronze = material(vec4(0.7, 0.4, 0.2, 1.0), 25.6);
+	primalyLight = light(vec3(1.0, 0.0, 0.0), vec3(1.0));
+
+	material gold = material(); // Error :コンストラクタで生成するときには引数が必要
+	material silver = material(51.2, vec4(0.5, 0.5, 0.5, 1.0)); // Error :順番が重要
+	material copper;
+	copper.color = vec4(0.7, 0.3, 0.1, 1.0); // OK :ここではshininessは不定の値
+
+	vec4 bronzeColor = bronze.color;
+	float bronzeShininess = bronze.shininess;
+}
+</pre>
+<p>また、配列も用意されています。初期化はC#のコレクション初期化子とよく似ています。配列の要素数は明示する必要は必ずしもありませんが、要素数が違うと型が違うという扱いを受けるようです。</p>
+<pre class="brush: glsl;" title="construct">
+	float a[] = float[](1.0, 2.0, 3.0, 4.0); // float[] a でも可
+	// float a[4] = float[4](1.0, 2.0, 3.0, 4.0);
+
+	float b = a[1];
+
+	//すぐには使えないが2次元版 数字の順番でメモリに配置される
+	float c[][] = { float[](1.0, 2.0), float[](3.0, 4.0), float[](5.0, 6.0) };
+	// float c[3][2] = float[3][2](float[2](1.0, 2.0), float[2](3.0, 4.0), float[2](5.0, 6.0));
+	// float[2] c[3] や float[3][2] c と同じ
+</pre>
+</div>
