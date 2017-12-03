@@ -53,7 +53,7 @@ print <<< CSS_SCRIPT_LINK
 <script type="text/javascript" src="OpenTK_misc/shBrushXaml.js"></script>
 <script type="text/javascript" src="OpenTK_misc/shBrushIronPython.js"></script>
 <script type="text/javascript" src="OpenTK_misc/shBrushGLSL.js"></script>
-<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=MML_HTMLorMML-full"></script>
+<script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=MML_HTMLorMML-full"></script>
 <link rel="stylesheet" type="text/css" href="OpenTK_misc/shCore.css" />
 <link rel="stylesheet" type="text/css" href="OpenTK_misc/shThemeVisualStudio.css" />
 <script type="text/javascript">
@@ -107,13 +107,7 @@ else {
 print "</div>\n";
 
 print "<div id=\"bar\">\n";
-print <<< BAR_STATIC
-<!-- shinobi ct2 -->
-<script type="text/javascript" src="http://ct2.gouketu.com/sc/1663809"></script>
-<noscript><img src="http://ct2.gouketu.com/ll/1663809" border="0" alt="カウンター" /></noscript>
-<!-- /shinobi ct2 -->
 
-BAR_STATIC;
 print "<h4>記事</h4>\n";
 print "<ul>\n";
 print "<li><a href=\"OpenTKindex.php$suffix\">Index</a></li>\n";
