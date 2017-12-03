@@ -61,6 +61,7 @@ SyntaxHighlighter.all();
 </script>
 
 CSS_SCRIPT_LINK;
+print "<!-- test:" . gethostname() . ":-->";
 print "</head>\n";
 
 print "<body>\n";
